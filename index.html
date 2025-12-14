@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數位地毯工廠 V9 - iPad 完美修復版</title>
+    <title>數位地毯工廠 V10 - 嵌入相容版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="window.screenshotDisabled=true;"></script>
     <style>
         :root {
@@ -25,7 +25,8 @@
             user-select: none;
             -webkit-user-select: none; /* iOS Safari 專用 */
             touch-action: none; /* 禁止預設的手勢縮放與捲動 */
-            -webkit-tap-highlight-color: transparent; /* 移除點擊藍色框 */
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior: none; /* 防止拉動頁面彈性效果 */
         }
         
         /* 頂部控制區 */
@@ -84,7 +85,6 @@
             cursor: pointer; font-weight: bold;
             transition: transform 0.1s;
             display: flex; align-items: center; gap: 8px; justify-content: center;
-            touch-action: manipulation;
         }
         button:active { transform: scale(0.96); }
 
@@ -96,6 +96,13 @@
         .btn-reset { 
             background-color: #ff7675; color: white; 
             padding: 12px 20px; font-size: 16px;
+        }
+        
+        /* 特殊按鈕：強制旋轉 (備用方案) */
+        .btn-rotate-mode {
+            background-color: #fab1a0; color: #d63031;
+            padding: 12px 20px; font-size: 16px;
+            display: none; /* 預設隱藏，有需要可開啟 */
         }
 
         .btn-screenshot-lg {
@@ -124,9 +131,9 @@
             width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center;
             background: #0984e3; color: white; font-size: 30px; border-radius: 12px; cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        .inv-btn:hover { background: #74b9ff; }
+        .inv-btn:active { background: #74b9ff; transform: scale(0.95); }
 
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; border-bottom: 1px dashed #eee; padding-bottom: 5px;}
         .stat-val { font-weight: bold; font-size: 22px; }
@@ -138,7 +145,6 @@
             background-color: #fff;
             border: 4px solid #b2bec3;
             position: relative; border-radius: 12px;
-            /* 極淡背景 */
             background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
             background-size: 20px 20px; 
             overflow: hidden;
@@ -179,9 +185,11 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
             box-sizing: border-box; border: 1px solid rgba(0,0,0,0.1);
             z-index: 10;
-            touch-action: none; /* 關鍵：讓 JS 完全接管 */
+            touch-action: none;
+            /* 強制硬體加速，提升 iPad 拖拉流暢度 */
+            transform: translate3d(0,0,0); 
         }
-        .tile:active { cursor: grabbing; z-index: 100; transform: scale(1.05); box-shadow: 4px 4px 10px rgba(0,0,0,0.3); }
+        .tile:active { cursor: grabbing; z-index: 100; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); transform: scale(1.05) translate3d(0,0,0); }
         .tile-x2 { width: 100px; height: 100px; background-color: var(--big-sq-color); }
         .tile-x { width: 40px; height: 100px; background-color: var(--rect-color); }
         .tile-1 { width: 40px; height: 40px; background-color: var(--small-sq-color); }
@@ -267,15 +275,15 @@
                     <h3>📦 材料倉庫</h3>
                     <div class="inv-item">
                         <span><span class="mini-icon icon-x2"></span> x²</span>
-                        <button class="inv-btn" onpointerdown="spawnTile('x2')">+</button>
+                        <button class="inv-btn" ontouchstart="spawnTile('x2'); event.preventDefault();" onclick="spawnTile('x2')">+</button>
                     </div>
                     <div class="inv-item">
                         <span><span class="mini-icon icon-x"></span> x</span>
-                        <button class="inv-btn" onpointerdown="spawnTile('x')">+</button>
+                        <button class="inv-btn" ontouchstart="spawnTile('x'); event.preventDefault();" onclick="spawnTile('x')">+</button>
                     </div>
                     <div class="inv-item">
                         <span><span class="mini-icon icon-1"></span> 1</span>
-                        <button class="inv-btn" onpointerdown="spawnTile('1')">+</button>
+                        <button class="inv-btn" ontouchstart="spawnTile('1'); event.preventDefault();" onclick="spawnTile('1')">+</button>
                     </div>
                 </div>
 
@@ -298,7 +306,7 @@
 
             <div class="workspace-wrapper">
                 <div id="msg-overlay" class="message-overlay">訊息</div>
-                <div class="workspace" id="workspace" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+                <div class="workspace" id="workspace"></div>
             </div>
         </div>
 
@@ -328,7 +336,6 @@
     </div>
 
     <script>
-        // 初始化變數
         const workspace = document.getElementById('workspace');
         const overlay = document.getElementById('msg-overlay');
         const targetDisplay = document.getElementById('targetDisplay');
@@ -352,7 +359,6 @@
         let completedTasks = new Set();
         const totalTasks = { basic: 2, mid: 3, hard: 2, special: 2 };
 
-        // 監聽選單
         document.getElementById('levelSelect').addEventListener('change', function() {
             clearWorkspace();
             const val = this.value;
@@ -369,9 +375,13 @@
             }
         });
 
-        // 積木生成 (使用 pointerdown 以兼容滑鼠和觸控)
+        // ----------------------------------------------------
+        //  V10 核心：相容 iPad 嵌入環境的觸控邏輯
+        // ----------------------------------------------------
+        
         let selectedElement = null;
         let offset = { x: 0, y: 0 };
+        let touchStartTime = 0; // 用來判定是否為點擊 (旋轉)
 
         function spawnTile(type) {
             const div = document.createElement('div');
@@ -391,11 +401,9 @@
                 div.dataset.type = '1';
             }
 
-            // 註冊觸控與滑鼠事件 (統一使用 Pointer Events)
-            div.addEventListener('pointerdown', startDrag);
-            
-            // --- 修正重點：移除 click 監聽器，改由 endDrag 判斷旋轉 ---
-            // 舊的 div.addEventListener('click') 已移除
+            // 同時監聽 Mouse 和 Touch 事件，確保相容性
+            div.addEventListener('mousedown', handleStart);
+            div.addEventListener('touchstart', handleStart, {passive: false});
 
             div.style.left = (Math.random() * 50 + 20) + 'px';
             div.style.top = (Math.random() * 50 + 20) + 'px';
@@ -408,43 +416,49 @@
             updateStats();
         }
 
-        // 統一使用 Pointer Events (現代瀏覽器標準，完美支援 iPad)
-        function startDrag(e) {
-            e.preventDefault(); // 防止 iPad 預設的選取或捲動
+        // 統一處理開始事件
+        function handleStart(e) {
+            // 如果是觸控，阻止預設行為 (避免 iPad 捲動)
+            if (e.type === 'touchstart') e.preventDefault();
             
             selectedElement = e.target;
-            selectedElement.setPointerCapture(e.pointerId); // 關鍵：鎖定指針，防止滑出範圍失效
-            selectedElement.isDragging = false;
+            const evt = e.type === 'touchstart' ? e.touches[0] : e;
             
+            // 記錄開始狀態
             const rect = selectedElement.getBoundingClientRect();
-            offset.x = e.clientX - rect.left;
-            offset.y = e.clientY - rect.top;
-            selectedElement.startX = e.clientX;
-            selectedElement.startY = e.clientY;
+            offset.x = evt.clientX - rect.left;
+            offset.y = evt.clientY - rect.top;
+            
+            // 用時間來判定：如果按下和放開的時間很短，就是點擊 (旋轉)
+            touchStartTime = Date.now();
+            selectedElement.isDragging = false;
 
-            selectedElement.addEventListener('pointermove', drag);
-            selectedElement.addEventListener('pointerup', endDrag);
+            if (e.type === 'touchstart') {
+                document.addEventListener('touchmove', handleMove, {passive: false});
+                document.addEventListener('touchend', handleEnd);
+            } else {
+                document.addEventListener('mousemove', handleMove);
+                document.addEventListener('mouseup', handleEnd);
+            }
         }
 
-        function drag(e) {
+        // 統一處理移動事件
+        function handleMove(e) {
             if (!selectedElement) return;
-            e.preventDefault();
+            if (e.type === 'touchmove') e.preventDefault(); // 關鍵：阻止捲動
 
-            // 判斷是否為拖曳 (Threshold 5px)
-            if (Math.abs(e.clientX - selectedElement.startX) > 5 || 
-                Math.abs(e.clientY - selectedElement.startY) > 5) {
-                selectedElement.isDragging = true;
-            }
+            const evt = e.type === 'touchmove' ? e.touches[0] : e;
+            selectedElement.isDragging = true; // 只要動了就算拖曳
 
             const workspaceRect = workspace.getBoundingClientRect();
-            let newX = e.clientX - workspaceRect.left - offset.x;
-            let newY = e.clientY - workspaceRect.top - offset.y;
+            let newX = evt.clientX - workspaceRect.left - offset.x;
+            let newY = evt.clientY - workspaceRect.top - offset.y;
             
             // 磁吸
             newX = Math.round(newX / SNAP) * SNAP;
             newY = Math.round(newY / SNAP) * SNAP;
             
-            // 邊界限制
+            // 邊界
             if(newX < 0) newX = 0;
             if(newY < 0) newY = 0;
             if(newX > workspaceRect.width - selectedElement.offsetWidth) newX = workspaceRect.width - selectedElement.offsetWidth;
@@ -454,24 +468,31 @@
             selectedElement.style.top = newY + 'px';
         }
 
-        function endDrag(e) {
-            if(selectedElement) {
-                // --- iPad 旋轉修復核心邏輯 ---
-                // 如果指針放開時，沒有發生拖曳 (isDragging == false)
-                // 且目標是 x 長條，就執行旋轉
-                if (!selectedElement.isDragging && selectedElement.dataset.type === 'x') {
-                    selectedElement.classList.toggle('rotated');
-                    updateStats();
-                }
+        // 統一處理結束事件
+        function handleEnd(e) {
+            if (!selectedElement) return;
 
-                selectedElement.removeEventListener('pointermove', drag);
-                selectedElement.removeEventListener('pointerup', endDrag);
-                selectedElement.releasePointerCapture(e.pointerId);
-                selectedElement = null;
-                updateStats(); // 確保位置更新後統計正確
+            // --- 旋轉判定核心 ---
+            // 條件：手指按下到放開的時間小於 300毫秒 (視為點擊)
+            // 且該物件是長方形 x
+            const touchDuration = Date.now() - touchStartTime;
+            
+            // 如果時間很短，或者完全沒有發生拖曳位移
+            if ((touchDuration < 300 || !selectedElement.isDragging) && selectedElement.dataset.type === 'x') {
+                selectedElement.classList.toggle('rotated');
             }
+
+            // 清理監聽器
+            document.removeEventListener('mousemove', handleMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchmove', handleMove);
+            document.removeEventListener('touchend', handleEnd);
+            
+            selectedElement = null;
+            updateStats();
         }
 
+        // --- 驗證與其餘功能 ---
         function verifyCarpet() {
             const tiles = Array.from(workspace.querySelectorAll('.tile'));
             if (tiles.length === 0) { showMsg("畫布是空的！", false); return; }
@@ -508,7 +529,6 @@
             const boundW = maxX - minX;
             const boundH = maxY - minY;
             const boundingArea = boundW * boundH;
-            // 判定是否為實心矩形
             const isCompact = Math.abs(boundingArea - totalArea) < 100;
 
             if (isCompact && boundW > 0 && boundH > 0) {
@@ -534,102 +554,4 @@
             });
 
             document.getElementById('count-basic').innerText = `${counts.basic}/${totalTasks.basic}`;
-            document.getElementById('count-mid').innerText = `${counts.mid}/${totalTasks.mid}`;
-            document.getElementById('count-hard').innerText = `${counts.hard}/${totalTasks.hard}`;
-            document.getElementById('count-special').innerText = `${counts.special}/${totalTasks.special}`;
-
-            if (counts.basic >= totalTasks.basic) unlockGroup('opt-mid', 'badge-mid');
-            if (counts.mid >= totalTasks.mid) unlockGroup('opt-hard', 'badge-hard');
-            if (counts.hard >= totalTasks.hard) unlockGroup('opt-special', 'badge-special');
-            
-            if (counts.special >= totalTasks.special) {
-                setTimeout(()=>alert("太厲害了！恭喜全破！"), 500);
-            }
-        }
-
-        function unlockGroup(groupId, badgeId) {
-            const group = document.getElementById(groupId);
-            const badge = document.getElementById(badgeId);
-            if (group.disabled) {
-                group.disabled = false;
-                group.label = group.label.replace("🔒 ", "");
-                badge.classList.remove('locked');
-                badge.classList.add('active');
-                badge.innerHTML = badge.innerHTML.replace("🔒 ", "");
-                const options = group.querySelectorAll('option');
-                options.forEach(opt => opt.disabled = false);
-            }
-        }
-
-        function updateStats(returnObj = false) {
-            const tiles = workspace.querySelectorAll('.tile');
-            let counts = { x2: 0, xv: 0, xh: 0, one: 0 };
-            tiles.forEach(tile => {
-                const type = tile.dataset.type;
-                if(type === 'x2') counts.x2++;
-                else if(type === '1') counts.one++;
-                else if(type === 'x') {
-                    if(tile.classList.contains('rotated')) counts.xh++;
-                    else counts.xv++;
-                }
-            });
-            document.getElementById('count-x2').innerText = counts.x2;
-            document.getElementById('count-x-total').innerText = counts.xv + counts.xh;
-            document.getElementById('count-x-v').innerText = counts.xv;
-            document.getElementById('count-x-h').innerText = counts.xh;
-            document.getElementById('count-1').innerText = counts.one;
-            return counts;
-        }
-
-        function addToHistory(isSuccess, reason) {
-            const counts = updateStats(true);
-            const select = document.getElementById('levelSelect');
-            const taskKey = select.value;
-            let label = taskKey === 'custom' ? '自由練習' : tasks[taskKey].label;
-
-            let statusHtml = '';
-            if (isSuccess) {
-                statusHtml = '<span class="status-badge st-success">✅ 成功</span>';
-            } else {
-                if (reason === 'count_error') statusHtml = '<span class="status-badge st-fail-count">⚠️ 數量錯誤</span>';
-                else statusHtml = '<span class="status-badge st-fail-shape">❌ 形狀錯誤</span>';
-            }
-
-            const tbody = document.querySelector('#history-table tbody');
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-                <td style="text-align:left;">${label}</td>
-                <td>${counts.x2}</td>
-                <td>直: ${counts.xv} / 橫: ${counts.xh}</td>
-                <td>${counts.one}</td>
-                <td>${statusHtml}</td>
-            `;
-            tbody.insertBefore(row, tbody.firstChild);
-        }
-
-        function showMsg(text, isSuccess) {
-            overlay.innerHTML = text;
-            overlay.className = 'message-overlay ' + (isSuccess ? 'success-overlay' : 'error-overlay');
-            overlay.style.display = 'block';
-            setTimeout(() => { overlay.style.display = 'none'; }, 2000);
-        }
-
-        function takeScreenshot() {
-            if(window.screenshotDisabled) {
-                alert("無法載入截圖功能，請檢查網路連線。");
-                return;
-            }
-            const element = document.getElementById("capture-area");
-            html2canvas(element, {scale: 2}).then(canvas => {
-                const link = document.createElement('a');
-                link.download = '因式分解學習單.png';
-                link.href = canvas.toDataURL();
-                link.click();
-            }).catch(err => {
-                alert("截圖失敗，請改用 iPad 內建截圖功能 (電源鍵+音量鍵)");
-            });
-        }
-    </script>
-</body>
-</html>
+            document.getElementById('
