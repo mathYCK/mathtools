@@ -266,4 +266,370 @@
                 <div class="panel">
                     <h3>📦 材料倉庫</h3>
                     <div class="inv-item">
-                        <span><span class="mini-icon
+                        <span><span class="mini-icon icon-x2"></span> x²</span>
+                        <button class="inv-btn" onpointerdown="spawnTile('x2')">+</button>
+                    </div>
+                    <div class="inv-item">
+                        <span><span class="mini-icon icon-x"></span> x</span>
+                        <button class="inv-btn" onpointerdown="spawnTile('x')">+</button>
+                    </div>
+                    <div class="inv-item">
+                        <span><span class="mini-icon icon-1"></span> 1</span>
+                        <button class="inv-btn" onpointerdown="spawnTile('1')">+</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>📊 畫布統計</h3>
+                    <div class="stat-row">
+                        <span>x²</span>
+                        <span class="stat-val" id="count-x2" style="color:var(--big-sq-color)">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>x (總數)</span>
+                        <span class="stat-val" id="count-x-total" style="color:var(--rect-color)">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>1</span>
+                        <span class="stat-val" id="count-1" style="color:#fdcb6e">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace-wrapper">
+                <div id="msg-overlay" class="message-overlay">訊息</div>
+                <div class="workspace" id="workspace" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <div>
+                    <h2 style="margin:0;">📝 學習歷程紀錄</h2>
+                </div>
+                <button class="btn-screenshot-lg" onclick="takeScreenshot()">📸 下載紀錄</button>
+            </div>
+            
+            <table id="history-table">
+                <thead>
+                    <tr>
+                        <th width="20%">任務</th>
+                        <th width="15%"><span class="header-icon icon-x2"></span> x²</th>
+                        <th width="25%"><span class="header-icon icon-x"></span> x (直/橫)</th>
+                        <th width="15%"><span class="header-icon icon-1"></span> 1</th>
+                        <th width="25%">狀態</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // 初始化變數
+        const workspace = document.getElementById('workspace');
+        const overlay = document.getElementById('msg-overlay');
+        const targetDisplay = document.getElementById('targetDisplay');
+        const SIZE_1 = 40;
+        const SIZE_X = 100;
+        const SNAP = 20;
+
+        const tasks = {
+            't0': { level: 'tutorial', x2:1, x:3, one:2, label: 'x² + 3x + 2' },
+            't1': { level: 'basic', x2:1, x:2, one:1, label: 'x² + 2x + 1' },
+            't2': { level: 'basic', x2:1, x:4, one:3, label: 'x² + 4x + 3' },
+            't3': { level: 'mid',   x2:1, x:5, one:6, label: 'x² + 5x + 6' },
+            't4': { level: 'mid',   x2:1, x:6, one:8, label: 'x² + 6x + 8' },
+            't5': { level: 'mid',   x2:1, x:7, one:12, label: 'x² + 7x + 12' },
+            't6': { level: 'hard',  x2:1, x:10, one:16, label: 'x² + 10x + 16' },
+            't7': { level: 'hard',  x2:1, x:10, one:24, label: 'x² + 10x + 24' },
+            't8': { level: 'special', x2:2, x:13, one:21, label: '2x² + 13x + 21' },
+            't9': { level: 'special', x2:2, x:19, one:24, label: '2x² + 19x + 24' }
+        };
+
+        let completedTasks = new Set();
+        const totalTasks = { basic: 2, mid: 3, hard: 2, special: 2 };
+
+        // 監聽選單
+        document.getElementById('levelSelect').addEventListener('change', function() {
+            clearWorkspace();
+            const val = this.value;
+            if (val !== 'custom' && tasks[val]) {
+                targetDisplay.innerText = "目標：" + tasks[val].label;
+                targetDisplay.style.borderColor = "#0984e3";
+                targetDisplay.style.color = "#0984e3";
+                targetDisplay.style.backgroundColor = "#e8f0fe";
+            } else {
+                targetDisplay.innerText = "自由練習模式";
+                targetDisplay.style.borderColor = "#dcdde1";
+                targetDisplay.style.color = "#636e72";
+                targetDisplay.style.backgroundColor = "#f5f6fa";
+            }
+        });
+
+        // 積木生成 (使用 pointerdown 以兼容滑鼠和觸控)
+        let selectedElement = null;
+        let offset = { x: 0, y: 0 };
+
+        function spawnTile(type) {
+            const div = document.createElement('div');
+            div.classList.add('tile');
+            
+            if (type === 'x2') {
+                div.classList.add('tile-x2');
+                div.style.width = SIZE_X + 'px'; div.style.height = SIZE_X + 'px';
+                div.dataset.type = 'x2';
+            } else if (type === 'x') {
+                div.classList.add('tile-x');
+                div.style.width = SIZE_1 + 'px'; div.style.height = SIZE_X + 'px';
+                div.dataset.type = 'x';
+            } else {
+                div.classList.add('tile-1');
+                div.style.width = SIZE_1 + 'px'; div.style.height = SIZE_1 + 'px';
+                div.dataset.type = '1';
+            }
+
+            // 註冊觸控與滑鼠事件 (統一使用 Pointer Events)
+            div.addEventListener('pointerdown', startDrag);
+            
+            // --- 修正重點：移除 click 監聽器，改由 endDrag 判斷旋轉 ---
+            // 舊的 div.addEventListener('click') 已移除
+
+            div.style.left = (Math.random() * 50 + 20) + 'px';
+            div.style.top = (Math.random() * 50 + 20) + 'px';
+            workspace.appendChild(div);
+            updateStats();
+        }
+
+        function clearWorkspace() {
+            workspace.innerHTML = '';
+            updateStats();
+        }
+
+        // 統一使用 Pointer Events (現代瀏覽器標準，完美支援 iPad)
+        function startDrag(e) {
+            e.preventDefault(); // 防止 iPad 預設的選取或捲動
+            
+            selectedElement = e.target;
+            selectedElement.setPointerCapture(e.pointerId); // 關鍵：鎖定指針，防止滑出範圍失效
+            selectedElement.isDragging = false;
+            
+            const rect = selectedElement.getBoundingClientRect();
+            offset.x = e.clientX - rect.left;
+            offset.y = e.clientY - rect.top;
+            selectedElement.startX = e.clientX;
+            selectedElement.startY = e.clientY;
+
+            selectedElement.addEventListener('pointermove', drag);
+            selectedElement.addEventListener('pointerup', endDrag);
+        }
+
+        function drag(e) {
+            if (!selectedElement) return;
+            e.preventDefault();
+
+            // 判斷是否為拖曳 (Threshold 5px)
+            if (Math.abs(e.clientX - selectedElement.startX) > 5 || 
+                Math.abs(e.clientY - selectedElement.startY) > 5) {
+                selectedElement.isDragging = true;
+            }
+
+            const workspaceRect = workspace.getBoundingClientRect();
+            let newX = e.clientX - workspaceRect.left - offset.x;
+            let newY = e.clientY - workspaceRect.top - offset.y;
+            
+            // 磁吸
+            newX = Math.round(newX / SNAP) * SNAP;
+            newY = Math.round(newY / SNAP) * SNAP;
+            
+            // 邊界限制
+            if(newX < 0) newX = 0;
+            if(newY < 0) newY = 0;
+            if(newX > workspaceRect.width - selectedElement.offsetWidth) newX = workspaceRect.width - selectedElement.offsetWidth;
+            if(newY > workspaceRect.height - selectedElement.offsetHeight) newY = workspaceRect.height - selectedElement.offsetHeight;
+
+            selectedElement.style.left = newX + 'px';
+            selectedElement.style.top = newY + 'px';
+        }
+
+        function endDrag(e) {
+            if(selectedElement) {
+                // --- iPad 旋轉修復核心邏輯 ---
+                // 如果指針放開時，沒有發生拖曳 (isDragging == false)
+                // 且目標是 x 長條，就執行旋轉
+                if (!selectedElement.isDragging && selectedElement.dataset.type === 'x') {
+                    selectedElement.classList.toggle('rotated');
+                    updateStats();
+                }
+
+                selectedElement.removeEventListener('pointermove', drag);
+                selectedElement.removeEventListener('pointerup', endDrag);
+                selectedElement.releasePointerCapture(e.pointerId);
+                selectedElement = null;
+                updateStats(); // 確保位置更新後統計正確
+            }
+        }
+
+        function verifyCarpet() {
+            const tiles = Array.from(workspace.querySelectorAll('.tile'));
+            if (tiles.length === 0) { showMsg("畫布是空的！", false); return; }
+
+            const current = updateStats(true);
+            const taskKey = document.getElementById('levelSelect').value;
+            
+            if (taskKey !== 'custom') {
+                const target = tasks[taskKey];
+                if (current.x2 !== target.x2 || 
+                   (current.xv + current.xh) !== target.x || 
+                   current.one !== target.one) {
+                    showMsg(`⚠️ 材料數量不對！`, false);
+                    addToHistory(false, 'count_error');
+                    return;
+                }
+            }
+
+            let totalArea = 0;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+            tiles.forEach(tile => {
+                const w = tile.offsetWidth;
+                const h = tile.offsetHeight;
+                const x = parseInt(tile.style.left);
+                const y = parseInt(tile.style.top);
+                totalArea += (w * h);
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x + w > maxX) maxX = x + w;
+                if (y + h > maxY) maxY = y + h;
+            });
+
+            const boundW = maxX - minX;
+            const boundH = maxY - minY;
+            const boundingArea = boundW * boundH;
+            // 判定是否為實心矩形
+            const isCompact = Math.abs(boundingArea - totalArea) < 100;
+
+            if (isCompact && boundW > 0 && boundH > 0) {
+                showMsg("🎉 成功！拼出完美矩形！", true);
+                if (taskKey !== 'custom') {
+                    if (!completedTasks.has(taskKey)) {
+                        completedTasks.add(taskKey);
+                        updateProgress();
+                    }
+                }
+                addToHistory(true, 'success');
+            } else {
+                showMsg("⚠️ 形狀不對！\n請拼成實心長方形。", false);
+                addToHistory(false, 'shape_error');
+            }
+        }
+
+        function updateProgress() {
+            let counts = { basic: 0, mid: 0, hard: 0, special: 0 };
+            completedTasks.forEach(key => {
+                const lvl = tasks[key].level;
+                if (counts[lvl] !== undefined) counts[lvl]++;
+            });
+
+            document.getElementById('count-basic').innerText = `${counts.basic}/${totalTasks.basic}`;
+            document.getElementById('count-mid').innerText = `${counts.mid}/${totalTasks.mid}`;
+            document.getElementById('count-hard').innerText = `${counts.hard}/${totalTasks.hard}`;
+            document.getElementById('count-special').innerText = `${counts.special}/${totalTasks.special}`;
+
+            if (counts.basic >= totalTasks.basic) unlockGroup('opt-mid', 'badge-mid');
+            if (counts.mid >= totalTasks.mid) unlockGroup('opt-hard', 'badge-hard');
+            if (counts.hard >= totalTasks.hard) unlockGroup('opt-special', 'badge-special');
+            
+            if (counts.special >= totalTasks.special) {
+                setTimeout(()=>alert("太厲害了！恭喜全破！"), 500);
+            }
+        }
+
+        function unlockGroup(groupId, badgeId) {
+            const group = document.getElementById(groupId);
+            const badge = document.getElementById(badgeId);
+            if (group.disabled) {
+                group.disabled = false;
+                group.label = group.label.replace("🔒 ", "");
+                badge.classList.remove('locked');
+                badge.classList.add('active');
+                badge.innerHTML = badge.innerHTML.replace("🔒 ", "");
+                const options = group.querySelectorAll('option');
+                options.forEach(opt => opt.disabled = false);
+            }
+        }
+
+        function updateStats(returnObj = false) {
+            const tiles = workspace.querySelectorAll('.tile');
+            let counts = { x2: 0, xv: 0, xh: 0, one: 0 };
+            tiles.forEach(tile => {
+                const type = tile.dataset.type;
+                if(type === 'x2') counts.x2++;
+                else if(type === '1') counts.one++;
+                else if(type === 'x') {
+                    if(tile.classList.contains('rotated')) counts.xh++;
+                    else counts.xv++;
+                }
+            });
+            document.getElementById('count-x2').innerText = counts.x2;
+            document.getElementById('count-x-total').innerText = counts.xv + counts.xh;
+            document.getElementById('count-x-v').innerText = counts.xv;
+            document.getElementById('count-x-h').innerText = counts.xh;
+            document.getElementById('count-1').innerText = counts.one;
+            return counts;
+        }
+
+        function addToHistory(isSuccess, reason) {
+            const counts = updateStats(true);
+            const select = document.getElementById('levelSelect');
+            const taskKey = select.value;
+            let label = taskKey === 'custom' ? '自由練習' : tasks[taskKey].label;
+
+            let statusHtml = '';
+            if (isSuccess) {
+                statusHtml = '<span class="status-badge st-success">✅ 成功</span>';
+            } else {
+                if (reason === 'count_error') statusHtml = '<span class="status-badge st-fail-count">⚠️ 數量錯誤</span>';
+                else statusHtml = '<span class="status-badge st-fail-shape">❌ 形狀錯誤</span>';
+            }
+
+            const tbody = document.querySelector('#history-table tbody');
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td style="text-align:left;">${label}</td>
+                <td>${counts.x2}</td>
+                <td>直: ${counts.xv} / 橫: ${counts.xh}</td>
+                <td>${counts.one}</td>
+                <td>${statusHtml}</td>
+            `;
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function showMsg(text, isSuccess) {
+            overlay.innerHTML = text;
+            overlay.className = 'message-overlay ' + (isSuccess ? 'success-overlay' : 'error-overlay');
+            overlay.style.display = 'block';
+            setTimeout(() => { overlay.style.display = 'none'; }, 2000);
+        }
+
+        function takeScreenshot() {
+            if(window.screenshotDisabled) {
+                alert("無法載入截圖功能，請檢查網路連線。");
+                return;
+            }
+            const element = document.getElementById("capture-area");
+            html2canvas(element, {scale: 2}).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '因式分解學習單.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }).catch(err => {
+                alert("截圖失敗，請改用 iPad 內建截圖功能 (電源鍵+音量鍵)");
+            });
+        }
+    </script>
+</body>
+</html>
