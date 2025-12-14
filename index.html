@@ -2,14 +2,14 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數位地毯工廠 V7 - 課堂輕量版</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數位地毯工廠 V9 - iPad 完美修復版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="window.screenshotDisabled=true;"></script>
     <style>
         :root {
-            --big-sq-color: #ff7675;  /* x^2 紅 */
-            --rect-color: #55efc4;    /* x 綠 */
-            --small-sq-color: #ffeaa7; /* 1 黃 */
+            --big-sq-color: #ff7675;
+            --rect-color: #55efc4;
+            --small-sq-color: #ffeaa7;
             --bg-color: #f1f2f6;
             --panel-bg: white;
             --btn-color: #6c5ce7;
@@ -22,7 +22,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            user-select: none; /* 防止選取文字干擾拖曳 */
+            user-select: none;
+            -webkit-user-select: none; /* iOS Safari 專用 */
+            touch-action: none; /* 禁止預設的手勢縮放與捲動 */
+            -webkit-tap-highlight-color: transparent; /* 移除點擊藍色框 */
         }
         
         /* 頂部控制區 */
@@ -30,7 +33,7 @@
             width: 95%; max-width: 1100px;
             margin-bottom: 20px;
             background: var(--panel-bg);
-            padding: 25px;
+            padding: 20px;
             border-radius: 15px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             display: flex;
@@ -55,8 +58,8 @@
             border: 1px solid #dfe6e9; transition: all 0.3s;
             font-weight: bold;
         }
-        .badge.active { background: #0984e3; color: white; border-color: #0984e3; box-shadow: 0 2px 5px rgba(9, 132, 227, 0.3); }
-        .badge.locked { opacity: 0.5; cursor: not-allowed; }
+        .badge.active { background: #0984e3; color: white; border-color: #0984e3; }
+        .badge.locked { opacity: 0.5; }
         .badge .count { font-size: 0.85em; margin-left: 6px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px;}
 
         .target-display {
@@ -67,10 +70,11 @@
             text-align: center; width: 100%; box-sizing: border-box;
         }
 
-        /* 選擇器與按鈕 */
+        /* 按鈕群組 */
         select { 
             padding: 12px; font-size: 18px; border-radius: 8px; 
-            border: 2px solid #ddd; width: 320px; outline: none; cursor: pointer;
+            border: 2px solid #ddd; width: 300px; outline: none; cursor: pointer;
+            background: white;
         }
 
         .btn-group { display: flex; gap: 15px; align-items: center; }
@@ -78,14 +82,15 @@
         button {
             border: none; border-radius: 8px;
             cursor: pointer; font-weight: bold;
-            transition: transform 0.1s, box-shadow 0.2s;
+            transition: transform 0.1s;
             display: flex; align-items: center; gap: 8px; justify-content: center;
+            touch-action: manipulation;
         }
         button:active { transform: scale(0.96); }
 
         .btn-check { 
             background-color: #00b894; color: white; 
-            padding: 12px 24px; font-size: 18px;
+            padding: 15px 30px; font-size: 20px;
             box-shadow: 0 4px 0 #009476;
         }
         .btn-reset { 
@@ -93,18 +98,11 @@
             padding: 12px 20px; font-size: 16px;
         }
 
-        /* 超大截圖按鈕 */
         .btn-screenshot-lg {
             background-color: var(--btn-color); color: white;
-            padding: 15px 30px; font-size: 20px;
-            border-radius: 10px;
+            padding: 15px 40px; font-size: 22px;
+            border-radius: 12px;
             box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(108, 92, 231, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0); }
         }
 
         /* 主容器 */
@@ -114,18 +112,21 @@
             width: 100%; max-width: 1300px;
         }
 
-        /* 左側面板 */
         .sidebar { width: 240px; display: flex; flex-direction: column; gap: 20px; }
         .panel {
             background: var(--panel-bg); padding: 20px;
             border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .inv-item { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .inv-item { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* 加大生成按鈕 */
         .inv-btn { 
-            width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;
-            background: #0984e3; color: white; font-size: 24px; border-radius: 50%; cursor: pointer;
+            width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center;
+            background: #0984e3; color: white; font-size: 30px; border-radius: 12px; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            touch-action: manipulation;
         }
-        .inv-btn:hover { background: #74b9ff; transform: scale(1.1); }
+        .inv-btn:hover { background: #74b9ff; }
 
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; border-bottom: 1px dashed #eee; padding-bottom: 5px;}
         .stat-val { font-weight: bold; font-size: 22px; }
@@ -141,7 +142,7 @@
             background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
             background-size: 20px 20px; 
             overflow: hidden;
-            touch-action: none; /* 平板優化：防止拖曳時捲動頁面 */
+            touch-action: none;
         }
 
         /* 學習歷程 */
@@ -159,20 +160,17 @@
             border-bottom: 1px solid #eee; padding: 15px; 
             text-align: center; vertical-align: middle; font-size: 1.1em; color: #2d3436;
         }
-        /* 狀態標籤 */
         .status-badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold;}
         .st-success { background: #d4edda; color: #155724; }
         .st-fail-shape { background: #f8d7da; color: #721c24; }
         .st-fail-count { background: #fff3cd; color: #856404; }
 
-        /* 圖示 */
         .header-icon { display: inline-block; vertical-align: middle; border: 1px solid rgba(0,0,0,0.1); margin-right: 8px; border-radius: 2px; }
         .icon-x2 { width: 24px; height: 24px; background: var(--big-sq-color); }
         .icon-x { width: 12px; height: 24px; background: var(--rect-color); }
         .icon-1 { width: 16px; height: 16px; background: var(--small-sq-color); }
         .mini-icon { display: inline-block; vertical-align: middle; border: 1px solid rgba(0,0,0,0.1); margin-right: 5px; }
 
-        /* 積木樣式 (1=40px, x=100px) */
         .tile {
             position: absolute; cursor: grab;
             display: flex; align-items: center; justify-content: center;
@@ -181,7 +179,7 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
             box-sizing: border-box; border: 1px solid rgba(0,0,0,0.1);
             z-index: 10;
-            touch-action: none; /* 平板優化 */
+            touch-action: none; /* 關鍵：讓 JS 完全接管 */
         }
         .tile:active { cursor: grabbing; z-index: 100; transform: scale(1.05); box-shadow: 4px 4px 10px rgba(0,0,0,0.3); }
         .tile-x2 { width: 100px; height: 100px; background-color: var(--big-sq-color); }
@@ -189,7 +187,6 @@
         .tile-1 { width: 40px; height: 40px; background-color: var(--small-sq-color); }
         .rotated { width: 100px !important; height: 40px !important; }
 
-        /* 訊息提示 */
         .message-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             padding: 30px 50px; border-radius: 15px; font-size: 24px; font-weight: bold;
@@ -199,13 +196,6 @@
         }
         .success-overlay { background: rgba(0, 184, 148, 0.95); color: white; }
         .error-overlay { background: rgba(214, 48, 49, 0.95); color: white; }
-
-        /* 完賽特效區 */
-        .confetti-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 999; display: none;
-        }
-
     </style>
 </head>
 <body>
@@ -234,30 +224,25 @@
             </div>
 
             <div class="header-row" style="margin-top:15px; justify-content: space-between;">
-                <div style="display:flex; gap:10px; align-items: center;">
+                <div style="display:flex; gap:10px; align-items: center; flex-wrap:wrap;">
                     <select id="levelSelect">
                         <option value="custom">-- 自由練習模式 --</option>
-                        
-                        <optgroup label="🔰 教學範例 (老師示範)">
+                        <optgroup label="🔰 教學範例">
                             <option value="t0">範例: x² + 3x + 2</option>
                         </optgroup>
-
                         <optgroup label="🌱 初級任務 (共2題)" id="opt-basic">
                             <option value="t1">1. x² + 2x + 1</option>
                             <option value="t2">2. x² + 4x + 3</option>
                         </optgroup>
-                        
                         <optgroup label="🔒 中級任務 (共3題)" id="opt-mid" disabled>
                             <option value="t3" disabled>3. x² + 5x + 6</option>
                             <option value="t4" disabled>4. x² + 6x + 8</option>
                             <option value="t5" disabled>5. x² + 7x + 12</option>
                         </optgroup>
-                        
                         <optgroup label="🔒 高級任務 (共2題)" id="opt-hard" disabled>
                             <option value="t6" disabled>6. x² + 10x + 16</option>
                             <option value="t7" disabled>7. x² + 10x + 24</option>
                         </optgroup>
-
                         <optgroup label="🏆 特殊任務 (共2題)" id="opt-special" disabled>
                             <option value="t8" disabled>8. 2x² + 13x + 21</option>
                             <option value="t9" disabled>9. 2x² + 19x + 24</option>
@@ -266,13 +251,13 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn-reset" onclick="clearWorkspace()">🗑️ 清空畫布</button>
-                    <button class="btn-check" onclick="verifyCarpet()">✅ 驗收成果</button>
+                    <button class="btn-reset" onclick="clearWorkspace()">🗑️ 重置</button>
+                    <button class="btn-check" onclick="verifyCarpet()">✅ 驗收</button>
                 </div>
             </div>
             
             <div id="targetDisplay" class="target-display">
-                請先選擇「教學範例」開始練習
+                請先選擇「教學範例」
             </div>
         </div>
 
@@ -280,387 +265,5 @@
             <div class="sidebar">
                 <div class="panel">
                     <h3>📦 材料倉庫</h3>
-                    <p style="font-size:14px; color:#666; margin-bottom:15px;">點擊領取，點擊綠色長條可旋轉</p>
                     <div class="inv-item">
-                        <span><span class="mini-icon icon-x2"></span> x²</span>
-                        <button class="inv-btn" onclick="spawnTile('x2')">+</button>
-                    </div>
-                    <div class="inv-item">
-                        <span><span class="mini-icon icon-x"></span> x</span>
-                        <button class="inv-btn" onclick="spawnTile('x')">+</button>
-                    </div>
-                    <div class="inv-item">
-                        <span><span class="mini-icon icon-1"></span> 1</span>
-                        <button class="inv-btn" onclick="spawnTile('1')">+</button>
-                    </div>
-                </div>
-
-                <div class="panel">
-                    <h3>📊 畫布統計</h3>
-                    <div class="stat-row">
-                        <span>x²</span>
-                        <span class="stat-val" id="count-x2" style="color:var(--big-sq-color)">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>x (總數)</span>
-                        <span class="stat-val" id="count-x-total" style="color:var(--rect-color)">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>1</span>
-                        <span class="stat-val" id="count-1" style="color:#fdcb6e">0</span>
-                    </div>
-                    <hr style="border:0; border-top:1px dashed #eee; margin:10px 0;">
-                    <div style="font-size:0.9em; color:#666;">
-                        直放 x: <span id="count-x-v" style="font-weight:bold;">0</span> / 
-                        橫放 x: <span id="count-x-h" style="font-weight:bold;">0</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="workspace-wrapper">
-                <div id="msg-overlay" class="message-overlay">訊息</div>
-                <div class="workspace" id="workspace" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
-            </div>
-        </div>
-
-        <div class="history-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                <div>
-                    <h2 style="margin:0;">📝 學習歷程紀錄</h2>
-                    <p style="color:#666; font-size: 0.9em; margin-top:5px;">完成後請點擊右方按鈕下載圖片繳交</p>
-                </div>
-                <button class="btn-screenshot-lg" onclick="takeScreenshot()">📸 下載紀錄</button>
-            </div>
-            
-            <table id="history-table">
-                <thead>
-                    <tr>
-                        <th width="20%">任務名稱</th>
-                        <th width="15%"><span class="header-icon icon-x2"></span> x²</th>
-                        <th width="25%"><span class="header-icon icon-x"></span> x (直 / 橫)</th>
-                        <th width="15%"><span class="header-icon icon-1"></span> 1</th>
-                        <th width="25%">狀態</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-
-    </div>
-
-    <script>
-        const workspace = document.getElementById('workspace');
-        const overlay = document.getElementById('msg-overlay');
-        const targetDisplay = document.getElementById('targetDisplay');
-        const SIZE_1 = 40;
-        const SIZE_X = 100;
-        const SNAP = 20;
-
-        // --- 題目參數設定 (輕量版) ---
-        const tasks = {
-            't0': { level: 'tutorial', x2:1, x:3, one:2, label: 'x² + 3x + 2' },
-
-            't1': { level: 'basic', x2:1, x:2, one:1, label: 'x² + 2x + 1' },
-            't2': { level: 'basic', x2:1, x:4, one:3, label: 'x² + 4x + 3' },
-            
-            't3': { level: 'mid',   x2:1, x:5, one:6, label: 'x² + 5x + 6' },
-            't4': { level: 'mid',   x2:1, x:6, one:8, label: 'x² + 6x + 8' },
-            't5': { level: 'mid',   x2:1, x:7, one:12, label: 'x² + 7x + 12' },
-
-            't6': { level: 'hard',  x2:1, x:10, one:16, label: 'x² + 10x + 16' },
-            't7': { level: 'hard',  x2:1, x:10, one:24, label: 'x² + 10x + 24' },
-
-            't8': { level: 'special', x2:2, x:13, one:21, label: '2x² + 13x + 21' },
-            't9': { level: 'special', x2:2, x:19, one:24, label: '2x² + 19x + 24' }
-        };
-
-        let completedTasks = new Set();
-        
-        // 分級任務總數
-        const totalTasks = {
-            basic: 2,
-            mid: 3,
-            hard: 2,
-            special: 2
-        };
-
-        // 切換任務
-        document.getElementById('levelSelect').addEventListener('change', function() {
-            clearWorkspace();
-            const val = this.value;
-            if (val !== 'custom' && tasks[val]) {
-                targetDisplay.innerText = "目標：" + tasks[val].label;
-                targetDisplay.style.borderColor = "#0984e3";
-                targetDisplay.style.color = "#0984e3";
-                targetDisplay.style.backgroundColor = "#e8f0fe";
-            } else {
-                targetDisplay.innerText = "自由練習模式";
-                targetDisplay.style.borderColor = "#dcdde1";
-                targetDisplay.style.color = "#636e72";
-                targetDisplay.style.backgroundColor = "#f5f6fa";
-            }
-        });
-
-        // 積木操作
-        let selectedElement = null;
-        let offset = { x: 0, y: 0 };
-
-        function spawnTile(type) {
-            const div = document.createElement('div');
-            div.classList.add('tile');
-            
-            if (type === 'x2') {
-                div.classList.add('tile-x2');
-                div.style.width = SIZE_X + 'px'; div.style.height = SIZE_X + 'px';
-                div.dataset.type = 'x2';
-            } else if (type === 'x') {
-                div.classList.add('tile-x');
-                div.style.width = SIZE_1 + 'px'; div.style.height = SIZE_X + 'px';
-                div.dataset.type = 'x';
-            } else {
-                div.classList.add('tile-1');
-                div.style.width = SIZE_1 + 'px'; div.style.height = SIZE_1 + 'px';
-                div.dataset.type = '1';
-            }
-
-            div.addEventListener('mousedown', startDrag);
-            div.addEventListener('touchstart', startDrag, {passive: false}); // 支援觸控
-
-            if (type === 'x') {
-                const clickHandler = (e) => {
-                    if(!div.isDragging) {
-                        div.classList.toggle('rotated');
-                        updateStats();
-                    }
-                };
-                div.addEventListener('click', clickHandler);
-                // 平板可能需要 touchend 模擬 click
-            }
-
-            div.style.left = (Math.random() * 50 + 20) + 'px';
-            div.style.top = (Math.random() * 50 + 20) + 'px';
-            workspace.appendChild(div);
-            updateStats();
-        }
-
-        function clearWorkspace() {
-            workspace.innerHTML = '';
-            updateStats();
-        }
-
-        function startDrag(e) {
-            if (e.type === 'touchstart') e.preventDefault(); // 防止滾動
-            const evt = e.type === 'touchstart' ? e.touches[0] : e;
-            
-            selectedElement = e.target;
-            selectedElement.isDragging = false;
-            const rect = selectedElement.getBoundingClientRect();
-            offset.x = evt.clientX - rect.left;
-            offset.y = evt.clientY - rect.top;
-            selectedElement.startX = evt.clientX;
-            selectedElement.startY = evt.clientY;
-
-            if (e.type === 'touchstart') {
-                document.addEventListener('touchmove', drag, {passive: false});
-                document.addEventListener('touchend', endDrag);
-            } else {
-                document.addEventListener('mousemove', drag);
-                document.addEventListener('mouseup', endDrag);
-            }
-        }
-
-        function drag(e) {
-            if (e.type === 'touchmove') e.preventDefault();
-            const evt = e.type === 'touchmove' ? e.touches[0] : e;
-
-            if (!selectedElement) return;
-            if (Math.abs(evt.clientX - selectedElement.startX) > 5 || 
-                Math.abs(evt.clientY - selectedElement.startY) > 5) {
-                selectedElement.isDragging = true;
-            }
-            const workspaceRect = workspace.getBoundingClientRect();
-            let newX = evt.clientX - workspaceRect.left - offset.x;
-            let newY = evt.clientY - workspaceRect.top - offset.y;
-            newX = Math.round(newX / SNAP) * SNAP;
-            newY = Math.round(newY / SNAP) * SNAP;
-            
-            // 邊界檢查
-            if(newX < 0) newX = 0;
-            if(newY < 0) newY = 0;
-            if(newX > workspaceRect.width - selectedElement.offsetWidth) newX = workspaceRect.width - selectedElement.offsetWidth;
-            if(newY > workspaceRect.height - selectedElement.offsetHeight) newY = workspaceRect.height - selectedElement.offsetHeight;
-
-            selectedElement.style.left = newX + 'px';
-            selectedElement.style.top = newY + 'px';
-        }
-
-        function endDrag(e) {
-            selectedElement = null;
-            document.removeEventListener('mousemove', drag);
-            document.removeEventListener('mouseup', endDrag);
-            document.removeEventListener('touchmove', drag);
-            document.removeEventListener('touchend', endDrag);
-            updateStats();
-        }
-
-        // --- 核心驗證 ---
-        function verifyCarpet() {
-            const tiles = Array.from(workspace.querySelectorAll('.tile'));
-            if (tiles.length === 0) { showMsg("畫布是空的！", false); return; }
-
-            const current = updateStats(true);
-            const taskKey = document.getElementById('levelSelect').value;
-            
-            // 1. 數量驗證
-            if (taskKey !== 'custom') {
-                const target = tasks[taskKey];
-                if (current.x2 !== target.x2 || 
-                   (current.xv + current.xh) !== target.x || 
-                   current.one !== target.one) {
-                    showMsg(`⚠️ 材料數量不對！`, false);
-                    addToHistory(false, 'count_error');
-                    return;
-                }
-            }
-
-            // 2. 形狀驗證
-            let totalArea = 0;
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-            tiles.forEach(tile => {
-                const w = tile.offsetWidth;
-                const h = tile.offsetHeight;
-                const x = parseInt(tile.style.left);
-                const y = parseInt(tile.style.top);
-                totalArea += (w * h);
-                if (x < minX) minX = x;
-                if (y < minY) minY = y;
-                if (x + w > maxX) maxX = x + w;
-                if (y + h > maxY) maxY = y + h;
-            });
-
-            const boundW = maxX - minX;
-            const boundH = maxY - minY;
-            const boundingArea = boundW * boundH;
-            const isCompact = Math.abs(boundingArea - totalArea) < 100;
-
-            if (isCompact && boundW > 0 && boundH > 0) {
-                showMsg("🎉 成功！拼出完美矩形！", true);
-                if (taskKey !== 'custom') {
-                    if (!completedTasks.has(taskKey)) {
-                        completedTasks.add(taskKey);
-                        updateProgress();
-                    }
-                }
-                addToHistory(true, 'success');
-            } else {
-                showMsg("⚠️ 形狀不對！\n請拼成實心長方形。", false);
-                addToHistory(false, 'shape_error');
-            }
-        }
-
-        function updateProgress() {
-            let counts = { basic: 0, mid: 0, hard: 0, special: 0 };
-            completedTasks.forEach(key => {
-                const lvl = tasks[key].level;
-                if (counts[lvl] !== undefined) counts[lvl]++;
-            });
-
-            document.getElementById('count-basic').innerText = `${counts.basic}/${totalTasks.basic}`;
-            document.getElementById('count-mid').innerText = `${counts.mid}/${totalTasks.mid}`;
-            document.getElementById('count-hard').innerText = `${counts.hard}/${totalTasks.hard}`;
-            document.getElementById('count-special').innerText = `${counts.special}/${totalTasks.special}`;
-
-            if (counts.basic >= totalTasks.basic) unlockGroup('opt-mid', 'badge-mid');
-            if (counts.mid >= totalTasks.mid) unlockGroup('opt-hard', 'badge-hard');
-            if (counts.hard >= totalTasks.hard) unlockGroup('opt-special', 'badge-special');
-
-            // 全破特效
-            if(counts.special >= totalTasks.special) {
-                setTimeout(() => { alert("🏆 太強了！恭喜你完成所有挑戰！"); }, 1000);
-            }
-        }
-
-        function unlockGroup(groupId, badgeId) {
-            const group = document.getElementById(groupId);
-            const badge = document.getElementById(badgeId);
-            if (group.disabled) {
-                group.disabled = false;
-                group.label = group.label.replace("🔒 ", "");
-                badge.classList.remove('locked');
-                badge.classList.add('active');
-                badge.innerHTML = badge.innerHTML.replace("🔒 ", "");
-                const options = group.querySelectorAll('option');
-                options.forEach(opt => opt.disabled = false);
-                showMsg("🔓 新階段已解鎖！", true);
-            }
-        }
-
-        function updateStats(returnObj = false) {
-            const tiles = workspace.querySelectorAll('.tile');
-            let counts = { x2: 0, xv: 0, xh: 0, one: 0 };
-            tiles.forEach(tile => {
-                const type = tile.dataset.type;
-                if(type === 'x2') counts.x2++;
-                else if(type === '1') counts.one++;
-                else if(type === 'x') {
-                    if(tile.classList.contains('rotated')) counts.xh++;
-                    else counts.xv++;
-                }
-            });
-            document.getElementById('count-x2').innerText = counts.x2;
-            document.getElementById('count-x-total').innerText = counts.xv + counts.xh;
-            document.getElementById('count-x-v').innerText = counts.xv;
-            document.getElementById('count-x-h').innerText = counts.xh;
-            document.getElementById('count-1').innerText = counts.one;
-            return counts;
-        }
-
-        function addToHistory(isSuccess, reason) {
-            const counts = updateStats(true);
-            const select = document.getElementById('levelSelect');
-            const taskKey = select.value;
-            let label = taskKey === 'custom' ? '自由練習' : tasks[taskKey].label;
-
-            let statusHtml = '';
-            if (isSuccess) {
-                statusHtml = '<span class="status-badge st-success">✅ 成功</span>';
-            } else {
-                if (reason === 'count_error') statusHtml = '<span class="status-badge st-fail-count">⚠️ 數量錯誤</span>';
-                else statusHtml = '<span class="status-badge st-fail-shape">❌ 形狀錯誤</span>';
-            }
-
-            const tbody = document.querySelector('#history-table tbody');
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
-                <td style="text-align:left;">${label}</td>
-                <td>${counts.x2}</td>
-                <td>直: ${counts.xv} / 橫: ${counts.xh}</td>
-                <td>${counts.one}</td>
-                <td>${statusHtml}</td>
-            `;
-            tbody.insertBefore(row, tbody.firstChild);
-        }
-
-        function showMsg(text, isSuccess) {
-            overlay.innerHTML = text;
-            overlay.className = 'message-overlay ' + (isSuccess ? 'success-overlay' : 'error-overlay');
-            overlay.style.display = 'block';
-            setTimeout(() => { overlay.style.display = 'none'; }, 2000);
-        }
-
-        function takeScreenshot() {
-            const element = document.getElementById("capture-area");
-            // 暫時隱藏不必要的元件
-            html2canvas(element, {scale: 2}).then(canvas => {
-                const link = document.createElement('a');
-                link.download = '地毯工廠_學習紀錄.png';
-                link.href = canvas.toDataURL();
-                link.click();
-            });
-        }
-    </script>
-</body>
-</html>
+                        <span><span class="mini-icon
