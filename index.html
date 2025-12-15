@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數位地毯工廠 V10 - 嵌入相容版</title>
+    <title>數位地毯工廠 V12 - 溫暖助教版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" onerror="window.screenshotDisabled=true;"></script>
     <style>
         :root {
@@ -13,323 +13,215 @@
             --bg-color: #f1f2f6;
             --panel-bg: white;
             --btn-color: #6c5ce7;
+            --ai-bg: #fffbf0; /* 溫暖的米黃色背景 */
+            --ai-border: #ffeaa7;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             user-select: none;
-            -webkit-user-select: none; /* iOS Safari 專用 */
-            touch-action: none; /* 禁止預設的手勢縮放與捲動 */
+            -webkit-user-select: none;
+            touch-action: none;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior: none; /* 防止拉動頁面彈性效果 */
+            overscroll-behavior: none;
         }
         
-        /* 頂部控制區 */
+        h1 { font-size: 1.5rem; margin: 5px 0; color: #2d3436; }
+
         .controls {
-            width: 95%; max-width: 1100px;
-            margin-bottom: 20px;
+            width: 100%; max-width: 1000px;
             background: var(--panel-bg);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            padding: 10px 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        /* 進度條 */
-        .progress-bar {
-            display: flex; gap: 8px; font-size: 0.9em; color: #636e72; align-items: center; flex-wrap: wrap;
-        }
-        .badge {
-            padding: 6px 12px; border-radius: 20px;
-            background: #dfe6e9; color: #b2bec3;
-            border: 1px solid #dfe6e9; transition: all 0.3s;
-            font-weight: bold;
-        }
-        .badge.active { background: #0984e3; color: white; border-color: #0984e3; }
+
+        .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .progress-bar { display: flex; gap: 5px; font-size: 0.8em; flex-wrap: wrap;}
+        .badge { padding: 4px 8px; border-radius: 15px; background: #dfe6e9; color: #b2bec3; font-weight: bold; font-size: 0.85em; }
+        .badge.active { background: #0984e3; color: white; }
         .badge.locked { opacity: 0.5; }
-        .badge .count { font-size: 0.85em; margin-left: 6px; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px;}
 
-        .target-display {
-            background-color: #f5f6fa; color: #636e72;
-            padding: 15px; border-radius: 10px;
-            font-size: 1.5em; font-weight: bold;
-            border: 2px dashed #dcdde1;
-            text-align: center; width: 100%; box-sizing: border-box;
-        }
-
-        /* 按鈕群組 */
-        select { 
-            padding: 12px; font-size: 18px; border-radius: 8px; 
-            border: 2px solid #ddd; width: 300px; outline: none; cursor: pointer;
-            background: white;
-        }
-
-        .btn-group { display: flex; gap: 15px; align-items: center; }
-        
-        button {
-            border: none; border-radius: 8px;
-            cursor: pointer; font-weight: bold;
-            transition: transform 0.1s;
-            display: flex; align-items: center; gap: 8px; justify-content: center;
-        }
-        button:active { transform: scale(0.96); }
-
-        .btn-check { 
-            background-color: #00b894; color: white; 
-            padding: 15px 30px; font-size: 20px;
-            box-shadow: 0 4px 0 #009476;
-        }
-        .btn-reset { 
-            background-color: #ff7675; color: white; 
-            padding: 12px 20px; font-size: 16px;
-        }
-        
-        /* 特殊按鈕：強制旋轉 (備用方案) */
-        .btn-rotate-mode {
-            background-color: #fab1a0; color: #d63031;
-            padding: 12px 20px; font-size: 16px;
-            display: none; /* 預設隱藏，有需要可開啟 */
-        }
-
-        .btn-screenshot-lg {
-            background-color: var(--btn-color); color: white;
-            padding: 15px 40px; font-size: 22px;
+        /* --- AI 回饋區 (溫暖風格) --- */
+        .ai-feedback-box {
+            background-color: var(--ai-bg);
+            border: 2px solid var(--ai-border);
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+            padding: 12px 18px;
+            display: flex;
+            align-items: center; /* 垂直置中 */
+            gap: 15px;
+            min-height: 55px;
+            transition: all 0.3s;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.5);
         }
+        .ai-avatar { 
+            font-size: 32px; 
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.1));
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-3px); } 100% { transform: translateY(0px); } }
 
-        /* 主容器 */
-        .main-container {
-            display: flex; gap: 20px; justify-content: center;
-            align-items: flex-start; flex-wrap: wrap;
-            width: 100%; max-width: 1300px;
-        }
+        .ai-content { display: flex; flex-direction: column; justify-content: center; }
+        .ai-text { font-size: 1em; color: #2d3436; line-height: 1.4; font-weight: bold; }
+        .ai-hint { color: #888; font-size: 0.85em; margin-top: 3px; font-style: italic;}
 
-        .sidebar { width: 240px; display: flex; flex-direction: column; gap: 20px; }
-        .panel {
-            background: var(--panel-bg); padding: 20px;
-            border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .inv-item { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* 加大生成按鈕 */
-        .inv-btn { 
-            width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center;
-            background: #0984e3; color: white; font-size: 30px; border-radius: 12px; cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            -webkit-tap-highlight-color: transparent;
-        }
+        .action-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        select { padding: 8px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; flex-grow: 1; outline: none; background: white; max-width: 50%; }
+        .btn-group { display: flex; gap: 8px; }
+        button { border: none; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
+        .btn-check { background-color: #00b894; color: white; padding: 8px 16px; font-size: 16px; box-shadow: 0 3px 0 #009476; }
+        .btn-reset { background-color: #ff7675; color: white; padding: 8px 12px; font-size: 14px; }
+        .btn-check:active { transform: translateY(3px); box-shadow: none; }
+
+        .main-container { display: flex; gap: 10px; justify-content: center; align-items: flex-start; width: 100%; max-width: 1000px; flex-wrap: nowrap; }
+        .sidebar { width: 180px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .panel { background: var(--panel-bg); padding: 10px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .panel h3 { margin: 0 0 10px 0; font-size: 1rem; color: #636e72; text-align: center; }
+
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .inv-item-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .inv-btn { width: 45px; height: 45px; background: #0984e3; color: white; font-size: 24px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent;}
         .inv-btn:active { background: #74b9ff; transform: scale(0.95); }
+        .inv-label { font-size: 12px; color: #666; font-weight: bold; }
 
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; border-bottom: 1px dashed #eee; padding-bottom: 5px;}
-        .stat-val { font-weight: bold; font-size: 22px; }
+        .stat-compact { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; border-bottom: 1px dashed #eee; padding-bottom: 2px;}
+        .stat-val { font-weight: bold; font-size: 16px; }
 
-        /* 工作區 */
-        .workspace-wrapper { position: relative; }
+        .workspace-wrapper { flex-grow: 1; position: relative; width: 100%; }
         .workspace {
-            width: 720px; height: 600px;
-            background-color: #fff;
-            border: 4px solid #b2bec3;
-            position: relative; border-radius: 12px;
+            width: 100%; height: 55vh; min-height: 450px;
+            background-color: #fff; border: 3px solid #b2bec3; border-radius: 12px;
             background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-            background-size: 20px 20px; 
-            overflow: hidden;
-            touch-action: none;
+            background-size: 20px 20px; overflow: hidden; touch-action: none; position: relative;
         }
 
-        /* 學習歷程 */
-        .history-section {
-            width: 95%; max-width: 1100px; margin-top: 30px; margin-bottom: 80px;
-            background: white; padding: 30px; border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { 
-            background-color: #f8f9fa; color: #636e72; 
-            font-weight: 600; padding: 15px; border-bottom: 2px solid #dfe6e9; font-size: 1.1em;
-        }
-        td { 
-            border-bottom: 1px solid #eee; padding: 15px; 
-            text-align: center; vertical-align: middle; font-size: 1.1em; color: #2d3436;
-        }
-        .status-badge { padding: 6px 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold;}
-        .st-success { background: #d4edda; color: #155724; }
-        .st-fail-shape { background: #f8d7da; color: #721c24; }
-        .st-fail-count { background: #fff3cd; color: #856404; }
-
-        .header-icon { display: inline-block; vertical-align: middle; border: 1px solid rgba(0,0,0,0.1); margin-right: 8px; border-radius: 2px; }
-        .icon-x2 { width: 24px; height: 24px; background: var(--big-sq-color); }
-        .icon-x { width: 12px; height: 24px; background: var(--rect-color); }
-        .icon-1 { width: 16px; height: 16px; background: var(--small-sq-color); }
-        .mini-icon { display: inline-block; vertical-align: middle; border: 1px solid rgba(0,0,0,0.1); margin-right: 5px; }
-
-        .tile {
-            position: absolute; cursor: grab;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: rgba(0,0,0,0.4); font-size: 18px;
-            user-select: none;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-            box-sizing: border-box; border: 1px solid rgba(0,0,0,0.1);
-            z-index: 10;
-            touch-action: none;
-            /* 強制硬體加速，提升 iPad 拖拉流暢度 */
-            transform: translate3d(0,0,0); 
-        }
-        .tile:active { cursor: grabbing; z-index: 100; box-shadow: 4px 4px 10px rgba(0,0,0,0.3); transform: scale(1.05) translate3d(0,0,0); }
+        .history-section { width: 100%; max-width: 1000px; margin-top: 10px; margin-bottom: 40px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .btn-screenshot { background: var(--btn-color); color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: center; color: #2d3436; }
+        th { background: #f8f9fa; color: #636e72; }
+        
+        .tile { position: absolute; cursor: grab; display: flex; align-items: center; justify-content: center; font-weight: bold; color: rgba(0,0,0,0.4); font-size: 18px; user-select: none; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.1); z-index: 10; transform: translate3d(0,0,0); }
+        .tile.active { z-index: 100; box-shadow: 4px 4px 12px rgba(0,0,0,0.3); transform: scale(1.05) translate3d(0,0,0); }
         .tile-x2 { width: 100px; height: 100px; background-color: var(--big-sq-color); }
         .tile-x { width: 40px; height: 100px; background-color: var(--rect-color); }
         .tile-1 { width: 40px; height: 40px; background-color: var(--small-sq-color); }
         .rotated { width: 100px !important; height: 40px !important; }
 
-        .message-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 30px 50px; border-radius: 15px; font-size: 24px; font-weight: bold;
-            display: none; z-index: 200; text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); white-space: pre-line;
-            backdrop-filter: blur(8px);
+        .mini-icon { display: inline-block; vertical-align: middle; border: 1px solid rgba(0,0,0,0.1); margin-right: 3px; border-radius: 2px; }
+        .icon-x2 { width: 14px; height: 14px; background: var(--big-sq-color); }
+        .icon-x { width: 8px; height: 14px; background: var(--rect-color); }
+        .icon-1 { width: 10px; height: 10px; background: var(--small-sq-color); }
+
+        @media (max-width: 768px) {
+            .main-container { flex-wrap: wrap; }
+            .sidebar { width: 100%; flex-direction: row; justify-content: space-between; }
+            .inventory-grid { display: flex; gap: 15px; }
+            .workspace { height: 50vh; }
+            .action-row { flex-direction: column; align-items: stretch; }
+            select { max-width: 100%; }
         }
-        .success-overlay { background: rgba(0, 184, 148, 0.95); color: white; }
-        .error-overlay { background: rgba(214, 48, 49, 0.95); color: white; }
     </style>
 </head>
 <body>
 
-    <div id="capture-area" style="width:100%; display:flex; flex-direction:column; align-items:center; background-color: var(--bg-color);">
+    <div id="capture-area" style="width:100%; display:flex; flex-direction:column; align-items:center;">
         
-        <h1 style="color:#2d3436; margin-bottom: 5px;">數位地毯工廠</h1>
-        <p style="color:#636e72; margin-top: 0; margin-bottom: 20px;">觀察、拼湊、發現因式分解的規律</p>
+        <h1>數位地毯工廠</h1>
 
         <div class="controls">
             <div class="header-row">
                 <div class="progress-bar">
-                    <span class="badge active" id="badge-basic">
-                        🌱 初級 <span class="count" id="count-basic">0/2</span>
-                    </span>
-                    <span class="badge locked" id="badge-mid">
-                        🔒 中級 <span class="count" id="count-mid">0/3</span>
-                    </span>
-                    <span class="badge locked" id="badge-hard">
-                        🔒 高級 <span class="count" id="count-hard">0/2</span>
-                    </span>
-                    <span class="badge locked" id="badge-special">
-                        🏆 特殊 <span class="count" id="count-special">0/2</span>
-                    </span>
+                    <span class="badge active" id="badge-basic">🌱 初級 <span class="count" id="count-basic">0/2</span></span>
+                    <span class="badge locked" id="badge-mid">🔒 中級 <span class="count" id="count-mid">0/3</span></span>
+                    <span class="badge locked" id="badge-hard">🔒 高級 <span class="count" id="count-hard">0/2</span></span>
+                    <span class="badge locked" id="badge-special">🏆 特殊 <span class="count" id="count-special">0/2</span></span>
                 </div>
             </div>
 
-            <div class="header-row" style="margin-top:15px; justify-content: space-between;">
-                <div style="display:flex; gap:10px; align-items: center; flex-wrap:wrap;">
-                    <select id="levelSelect">
-                        <option value="custom">-- 自由練習模式 --</option>
-                        <optgroup label="🔰 教學範例">
-                            <option value="t0">範例: x² + 3x + 2</option>
-                        </optgroup>
-                        <optgroup label="🌱 初級任務 (共2題)" id="opt-basic">
-                            <option value="t1">1. x² + 2x + 1</option>
-                            <option value="t2">2. x² + 4x + 3</option>
-                        </optgroup>
-                        <optgroup label="🔒 中級任務 (共3題)" id="opt-mid" disabled>
-                            <option value="t3" disabled>3. x² + 5x + 6</option>
-                            <option value="t4" disabled>4. x² + 6x + 8</option>
-                            <option value="t5" disabled>5. x² + 7x + 12</option>
-                        </optgroup>
-                        <optgroup label="🔒 高級任務 (共2題)" id="opt-hard" disabled>
-                            <option value="t6" disabled>6. x² + 10x + 16</option>
-                            <option value="t7" disabled>7. x² + 10x + 24</option>
-                        </optgroup>
-                        <optgroup label="🏆 特殊任務 (共2題)" id="opt-special" disabled>
-                            <option value="t8" disabled>8. 2x² + 13x + 21</option>
-                            <option value="t9" disabled>9. 2x² + 19x + 24</option>
-                        </optgroup>
-                    </select>
+            <div class="ai-feedback-box" id="aiBox">
+                <div class="ai-avatar" id="aiAvatar">🤖</div>
+                <div class="ai-content">
+                    <div class="ai-text" id="aiMainText">準備好了嗎？</div>
+                    <span class="ai-hint" id="aiSubText">選擇一個任務，讓我們開始探索！</span>
                 </div>
+            </div>
 
+            <div class="action-row">
+                <select id="levelSelect">
+                    <option value="custom">-- 自由練習 --</option>
+                    <optgroup label="🔰 教學"><option value="t0">範例: x² + 3x + 2</option></optgroup>
+                    <optgroup label="🌱 初級"><option value="t1">1. x² + 2x + 1</option><option value="t2">2. x² + 4x + 3</option></optgroup>
+                    <optgroup label="🔒 中級" id="opt-mid" disabled><option value="t3">3. x² + 5x + 6</option><option value="t4">4. x² + 6x + 8</option><option value="t5">5. x² + 7x + 12</option></optgroup>
+                    <optgroup label="🔒 高級" id="opt-hard" disabled><option value="t6">6. x² + 10x + 16</option><option value="t7">7. x² + 10x + 24</option></optgroup>
+                    <optgroup label="🏆 特殊" id="opt-special" disabled><option value="t8">8. 2x² + 13x + 21</option><option value="t9">9. 2x² + 19x + 24</option></optgroup>
+                </select>
                 <div class="btn-group">
                     <button class="btn-reset" onclick="clearWorkspace()">🗑️ 重置</button>
                     <button class="btn-check" onclick="verifyCarpet()">✅ 驗收</button>
                 </div>
-            </div>
-            
-            <div id="targetDisplay" class="target-display">
-                請先選擇「教學範例」
             </div>
         </div>
 
         <div class="main-container">
             <div class="sidebar">
                 <div class="panel">
-                    <h3>📦 材料倉庫</h3>
-                    <div class="inv-item">
-                        <span><span class="mini-icon icon-x2"></span> x²</span>
-                        <button class="inv-btn" ontouchstart="spawnTile('x2'); event.preventDefault();" onclick="spawnTile('x2')">+</button>
-                    </div>
-                    <div class="inv-item">
-                        <span><span class="mini-icon icon-x"></span> x</span>
-                        <button class="inv-btn" ontouchstart="spawnTile('x'); event.preventDefault();" onclick="spawnTile('x')">+</button>
-                    </div>
-                    <div class="inv-item">
-                        <span><span class="mini-icon icon-1"></span> 1</span>
-                        <button class="inv-btn" ontouchstart="spawnTile('1'); event.preventDefault();" onclick="spawnTile('1')">+</button>
+                    <h3>📦 材料</h3>
+                    <div class="inventory-grid">
+                        <div class="inv-item-col">
+                            <button class="inv-btn" ontouchstart="spawnTile('x2'); event.preventDefault();" onclick="spawnTile('x2')">+</button>
+                            <span class="inv-label">x²</span>
+                        </div>
+                        <div class="inv-item-col">
+                            <button class="inv-btn" ontouchstart="spawnTile('x'); event.preventDefault();" onclick="spawnTile('x')">+</button>
+                            <span class="inv-label">x</span>
+                        </div>
+                        <div class="inv-item-col">
+                            <button class="inv-btn" ontouchstart="spawnTile('1'); event.preventDefault();" onclick="spawnTile('1')">+</button>
+                            <span class="inv-label">1</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="panel">
-                    <h3>📊 畫布統計</h3>
-                    <div class="stat-row">
-                        <span>x²</span>
-                        <span class="stat-val" id="count-x2" style="color:var(--big-sq-color)">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>x (總數)</span>
-                        <span class="stat-val" id="count-x-total" style="color:var(--rect-color)">0</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>1</span>
-                        <span class="stat-val" id="count-1" style="color:#fdcb6e">0</span>
-                    </div>
+                    <h3>📊 統計</h3>
+                    <div class="stat-compact"><span>x²</span><span class="stat-val" id="count-x2" style="color:var(--big-sq-color)">0</span></div>
+                    <div class="stat-compact"><span>x</span><span class="stat-val" id="count-x-total" style="color:var(--rect-color)">0</span></div>
+                    <div class="stat-compact"><span>1</span><span class="stat-val" id="count-1" style="color:#fdcb6e">0</span></div>
                 </div>
             </div>
 
             <div class="workspace-wrapper">
-                <div id="msg-overlay" class="message-overlay">訊息</div>
                 <div class="workspace" id="workspace"></div>
             </div>
         </div>
 
         <div class="history-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                <div>
-                    <h2 style="margin:0;">📝 學習歷程紀錄</h2>
-                </div>
-                <button class="btn-screenshot-lg" onclick="takeScreenshot()">📸 下載紀錄</button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">📝 紀錄</h3>
+                <button class="btn-screenshot" onclick="takeScreenshot()">📸 下載</button>
             </div>
-            
             <table id="history-table">
                 <thead>
                     <tr>
                         <th width="20%">任務</th>
-                        <th width="15%"><span class="header-icon icon-x2"></span> x²</th>
-                        <th width="25%"><span class="header-icon icon-x"></span> x (直/橫)</th>
-                        <th width="15%"><span class="header-icon icon-1"></span> 1</th>
-                        <th width="25%">狀態</th>
+                        <th><span class="mini-icon icon-x2"></span>x²</th>
+                        <th><span class="mini-icon icon-x"></span>x</th>
+                        <th><span class="mini-icon icon-1"></span>1</th>
+                        <th>狀態</th>
                     </tr>
                 </thead>
-                <tbody>
-                    </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -337,11 +229,64 @@
 
     <script>
         const workspace = document.getElementById('workspace');
-        const overlay = document.getElementById('msg-overlay');
-        const targetDisplay = document.getElementById('targetDisplay');
         const SIZE_1 = 40;
         const SIZE_X = 100;
         const SNAP = 20;
+
+        // AI 回饋元件
+        const aiMainText = document.getElementById('aiMainText');
+        const aiSubText = document.getElementById('aiSubText');
+        const aiBox = document.getElementById('aiBox');
+        const aiAvatar = document.getElementById('aiAvatar');
+
+        // 語錄庫 (情意與引導)
+        const feedbackMessages = {
+            count_error: [
+                { main: "咦？材料的數量好像不太對喔！", sub: "再檢查一下清單，是不是有材料躲起來沒被算到？" },
+                { main: "我們來對帳一下吧！", sub: "數數看，目前的總面積跟題目的要求一樣嗎？" },
+                { main: "好像多拿或少拿了一些東西？", sub: "別急，慢慢對照左邊的統計數字。" }
+            ],
+            shape_error: [
+                { main: "看起來快完成了，但中間好像有空隙？", sub: "試試看旋轉綠色的長條，換個方向或許就對了？" },
+                { main: "地毯必須是實心的長方形喔！", sub: "觀察一下，能不能把缺角的地方補起來？" },
+                { main: "這是一個很有創意的形狀，但不是長方形。", sub: "能不能調整一下排列順序試試看？" }
+            ],
+            success: [
+                { main: "太棒了！你的觀察力真好！", sub: "完美的長方形！趕快截圖記錄下來吧！" },
+                { main: "恭喜！你發現長和寬的秘密了嗎？", sub: "這就是因式分解的神奇之處！" },
+                { main: "Excellent! 你的空間感很強喔！", sub: "繼續挑戰下一關，你一定沒問題！" }
+            ],
+            start: [
+                { main: "準備好接受挑戰了嗎？", sub: "深呼吸，你可以的！" },
+                { main: "讓我們開始建造地毯吧！", sub: "記得觀察題目需要的材料數量喔。" }
+            ]
+        };
+
+        function getRandomMsg(category) {
+            const msgs = feedbackMessages[category];
+            return msgs[Math.floor(Math.random() * msgs.length)];
+        }
+
+        function aiSpeak(msgObj, type = 'normal') {
+            aiMainText.innerText = msgObj.main;
+            aiSubText.innerText = msgObj.sub;
+            
+            // 視覺狀態切換
+            aiBox.style.transition = "background-color 0.5s";
+            if(type === 'success') {
+                aiBox.style.backgroundColor = '#ecfbf6'; // 綠色系
+                aiBox.style.borderColor = '#55efc4';
+                aiAvatar.innerText = "🥰"; // 開心
+            } else if (type === 'error') {
+                aiBox.style.backgroundColor = '#fff0f0'; // 紅色系
+                aiBox.style.borderColor = '#ff7675';
+                aiAvatar.innerText = "🤔"; // 思考
+            } else {
+                aiBox.style.backgroundColor = '#fffbf0'; // 米黃色系
+                aiBox.style.borderColor = '#ffeaa7';
+                aiAvatar.innerText = "🤖"; // 正常
+            }
+        }
 
         const tasks = {
             't0': { level: 'tutorial', x2:1, x:3, one:2, label: 'x² + 3x + 2' },
@@ -363,25 +308,16 @@
             clearWorkspace();
             const val = this.value;
             if (val !== 'custom' && tasks[val]) {
-                targetDisplay.innerText = "目標：" + tasks[val].label;
-                targetDisplay.style.borderColor = "#0984e3";
-                targetDisplay.style.color = "#0984e3";
-                targetDisplay.style.backgroundColor = "#e8f0fe";
+                const msg = getRandomMsg('start');
+                aiSpeak({ main: `目標：${tasks[val].label}`, sub: msg.sub }, 'normal');
             } else {
-                targetDisplay.innerText = "自由練習模式";
-                targetDisplay.style.borderColor = "#dcdde1";
-                targetDisplay.style.color = "#636e72";
-                targetDisplay.style.backgroundColor = "#f5f6fa";
+                aiSpeak({ main: "自由練習模式", sub: "發揮創意，隨意拼湊！" }, 'normal');
             }
         });
 
-        // ----------------------------------------------------
-        //  V10 核心：相容 iPad 嵌入環境的觸控邏輯
-        // ----------------------------------------------------
-        
         let selectedElement = null;
         let offset = { x: 0, y: 0 };
-        let touchStartTime = 0; // 用來判定是否為點擊 (旋轉)
+        let touchStartTime = 0;
 
         function spawnTile(type) {
             const div = document.createElement('div');
@@ -401,7 +337,6 @@
                 div.dataset.type = '1';
             }
 
-            // 同時監聽 Mouse 和 Touch 事件，確保相容性
             div.addEventListener('mousedown', handleStart);
             div.addEventListener('touchstart', handleStart, {passive: false});
 
@@ -414,22 +349,19 @@
         function clearWorkspace() {
             workspace.innerHTML = '';
             updateStats();
+            aiSpeak({ main: "畫布已清空", sub: "準備迎接新的挑戰！" }, 'normal');
         }
 
-        // 統一處理開始事件
         function handleStart(e) {
-            // 如果是觸控，阻止預設行為 (避免 iPad 捲動)
             if (e.type === 'touchstart') e.preventDefault();
-            
             selectedElement = e.target;
-            const evt = e.type === 'touchstart' ? e.touches[0] : e;
+            selectedElement.classList.add('active');
             
-            // 記錄開始狀態
+            const evt = e.type === 'touchstart' ? e.touches[0] : e;
             const rect = selectedElement.getBoundingClientRect();
             offset.x = evt.clientX - rect.left;
             offset.y = evt.clientY - rect.top;
             
-            // 用時間來判定：如果按下和放開的時間很短，就是點擊 (旋轉)
             touchStartTime = Date.now();
             selectedElement.isDragging = false;
 
@@ -442,23 +374,20 @@
             }
         }
 
-        // 統一處理移動事件
         function handleMove(e) {
             if (!selectedElement) return;
-            if (e.type === 'touchmove') e.preventDefault(); // 關鍵：阻止捲動
+            if (e.type === 'touchmove') e.preventDefault();
 
             const evt = e.type === 'touchmove' ? e.touches[0] : e;
-            selectedElement.isDragging = true; // 只要動了就算拖曳
+            selectedElement.isDragging = true;
 
             const workspaceRect = workspace.getBoundingClientRect();
             let newX = evt.clientX - workspaceRect.left - offset.x;
             let newY = evt.clientY - workspaceRect.top - offset.y;
             
-            // 磁吸
             newX = Math.round(newX / SNAP) * SNAP;
             newY = Math.round(newY / SNAP) * SNAP;
             
-            // 邊界
             if(newX < 0) newX = 0;
             if(newY < 0) newY = 0;
             if(newX > workspaceRect.width - selectedElement.offsetWidth) newX = workspaceRect.width - selectedElement.offsetWidth;
@@ -468,21 +397,15 @@
             selectedElement.style.top = newY + 'px';
         }
 
-        // 統一處理結束事件
         function handleEnd(e) {
             if (!selectedElement) return;
+            selectedElement.classList.remove('active');
 
-            // --- 旋轉判定核心 ---
-            // 條件：手指按下到放開的時間小於 300毫秒 (視為點擊)
-            // 且該物件是長方形 x
             const touchDuration = Date.now() - touchStartTime;
-            
-            // 如果時間很短，或者完全沒有發生拖曳位移
             if ((touchDuration < 300 || !selectedElement.isDragging) && selectedElement.dataset.type === 'x') {
                 selectedElement.classList.toggle('rotated');
             }
 
-            // 清理監聽器
             document.removeEventListener('mousemove', handleMove);
             document.removeEventListener('mouseup', handleEnd);
             document.removeEventListener('touchmove', handleMove);
@@ -492,10 +415,12 @@
             updateStats();
         }
 
-        // --- 驗證與其餘功能 ---
         function verifyCarpet() {
             const tiles = Array.from(workspace.querySelectorAll('.tile'));
-            if (tiles.length === 0) { showMsg("畫布是空的！", false); return; }
+            if (tiles.length === 0) { 
+                aiSpeak({ main: "畫布是空的！", sub: "請先點擊「+」領取材料。" }, 'error');
+                return; 
+            }
 
             const current = updateStats(true);
             const taskKey = document.getElementById('levelSelect').value;
@@ -505,7 +430,8 @@
                 if (current.x2 !== target.x2 || 
                    (current.xv + current.xh) !== target.x || 
                    current.one !== target.one) {
-                    showMsg(`⚠️ 材料數量不對！`, false);
+                    // 隨機選取引導語句
+                    aiSpeak(getRandomMsg('count_error'), 'error');
                     addToHistory(false, 'count_error');
                     return;
                 }
@@ -532,7 +458,8 @@
             const isCompact = Math.abs(boundingArea - totalArea) < 100;
 
             if (isCompact && boundW > 0 && boundH > 0) {
-                showMsg("🎉 成功！拼出完美矩形！", true);
+                // 成功語句
+                aiSpeak(getRandomMsg('success'), 'success');
                 if (taskKey !== 'custom') {
                     if (!completedTasks.has(taskKey)) {
                         completedTasks.add(taskKey);
@@ -541,7 +468,8 @@
                 }
                 addToHistory(true, 'success');
             } else {
-                showMsg("⚠️ 形狀不對！\n請拼成實心長方形。", false);
+                // 形狀錯誤引導
+                aiSpeak(getRandomMsg('shape_error'), 'error');
                 addToHistory(false, 'shape_error');
             }
         }
@@ -554,4 +482,77 @@
             });
 
             document.getElementById('count-basic').innerText = `${counts.basic}/${totalTasks.basic}`;
-            document.getElementById('
+            document.getElementById('count-mid').innerText = `${counts.mid}/${totalTasks.mid}`;
+            document.getElementById('count-hard').innerText = `${counts.hard}/${totalTasks.hard}`;
+            document.getElementById('count-special').innerText = `${counts.special}/${totalTasks.special}`;
+
+            if (counts.basic >= totalTasks.basic) unlockGroup('opt-mid', 'badge-mid');
+            if (counts.mid >= totalTasks.mid) unlockGroup('opt-hard', 'badge-hard');
+            if (counts.hard >= totalTasks.hard) unlockGroup('opt-special', 'badge-special');
+            
+            if (counts.special >= totalTasks.special) {
+                aiSpeak({ main: "🏆 恭喜全破！", sub: "你已經是因式分解大師了！" }, 'success');
+            }
+        }
+
+        function unlockGroup(groupId, badgeId) {
+            const group = document.getElementById(groupId);
+            const badge = document.getElementById(badgeId);
+            if (group.disabled) {
+                group.disabled = false;
+                badge.classList.remove('locked');
+                badge.classList.add('active');
+                badge.innerHTML = badge.innerHTML.replace("🔒 ", "");
+                group.querySelectorAll('option').forEach(opt => opt.disabled = false);
+            }
+        }
+
+        function updateStats(returnObj = false) {
+            const tiles = workspace.querySelectorAll('.tile');
+            let counts = { x2: 0, xv: 0, xh: 0, one: 0 };
+            tiles.forEach(tile => {
+                const type = tile.dataset.type;
+                if(type === 'x2') counts.x2++;
+                else if(type === '1') counts.one++;
+                else if(type === 'x') {
+                    if(tile.classList.contains('rotated')) counts.xh++;
+                    else counts.xv++;
+                }
+            });
+            document.getElementById('count-x2').innerText = counts.x2;
+            document.getElementById('count-x-total').innerText = counts.xv + counts.xh;
+            document.getElementById('count-1').innerText = counts.one;
+            return counts;
+        }
+
+        function addToHistory(isSuccess, reason) {
+            const counts = updateStats(true);
+            const select = document.getElementById('levelSelect');
+            const taskKey = select.value;
+            let label = taskKey === 'custom' ? '自由練習' : tasks[taskKey].label;
+
+            let statusHtml = '';
+            if (isSuccess) statusHtml = '<span style="color:#00b894; font-weight:bold;">✅ 成功</span>';
+            else statusHtml = '<span style="color:#ff7675; font-weight:bold;">❌ 失敗</span>';
+
+            const tbody = document.querySelector('#history-table tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${label}</td><td>${counts.x2}</td><td>直:${counts.xv}/橫:${counts.xh}</td><td>${counts.one}</td><td>${statusHtml}</td>`;
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function takeScreenshot() {
+            if(window.screenshotDisabled) {
+                alert("截圖功能離線不可用"); return;
+            }
+            const element = document.getElementById("capture-area");
+            html2canvas(element, {scale: 2}).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '地毯工廠紀錄.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
