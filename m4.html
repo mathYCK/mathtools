@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>地毯工廠 5：挑戰任務</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" 
+    onload="console.log('截圖外掛載入成功')" 
+    onerror="alert('截圖外掛載入失敗！請檢查網路連線，或嘗試切換 Wi-Fi / 4G。')"></script>
     <style>
         :root { --big-sq-color:#ff7675; --rect-color:#55efc4; --small-sq-color:#ffeaa7; --bg-color:#f1f2f6; --panel-bg:white; --btn-color:#6c5ce7; }
         body { font-family:'Segoe UI',sans-serif; background-color:var(--bg-color); margin:0; padding:15px; display:flex; flex-direction:column; align-items:center; touch-action:pan-y; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -236,10 +238,38 @@
         function clearWorkspace() { ws.innerHTML=''; updateStats(); }
         function giveHint() { document.getElementById('aiBubble').innerText = "提示：長方形面積 = 長 × 寬，試著旋轉綠色長條！"; }
         function takeScreenshot() { 
-            html2canvas(document.getElementById('capture-area')).then(c=> {
-                const a = document.createElement('a'); a.download='record.png'; a.href=c.toDataURL(); a.click();
-            });
-        }
+    // 檢查外掛是否成功載入
+        if (typeof html2canvas === 'undefined') {
+        alert("截圖功能尚未載入完成，請重新整理網頁，或檢查網路連線。");
+        return;
+    }
+
+    // 顯示「處理中...」讓學生知道有反應
+    const btn = document.querySelector('.btn-download');
+    const originalText = btn.innerText;
+    btn.innerText = "處理中...";
+    btn.disabled = true;
+
+    html2canvas(document.getElementById('capture-area'), {
+        scale: 2, // 提高解析度
+        useCORS: true, // 跨域相容
+        logging: false
+    }).then(canvas => {
+        const link = document.createElement('a'); 
+        link.download = '地毯工廠學習單.png'; 
+        link.href = canvas.toDataURL('image/png'); 
+        link.click();
+        
+        // 恢復按鈕
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }).catch(err => {
+        alert("截圖失敗：\n" + err);
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
+        
     </script>
 </body>
 </html>
