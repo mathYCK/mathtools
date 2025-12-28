@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幾何探究：三角形的四心與尤拉線</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Tailwind Configuration for Custom Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'paper': '#fdfbf7', // Warm neutral background
+                        'ink': '#2d3748',
+                        'geo-blue': '#3b82f6', // Circumcenter
+                        'geo-green': '#10b981', // Incenter
+                        'geo-orange': '#f59e0b', // Centroid
+                        'geo-purple': '#8b5cf6', // Orthocenter
+                        'geo-red': '#ef4444', // Euler
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom Styles for Canvas Interaction */
+        canvas {
+            touch-action: none; /* Prevent scrolling while dragging on canvas */
+        }
+        .tab-active {
+            border-bottom: 2px solid #2d3748;
+            color: #1a202c;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            color: #718096;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-inactive:hover {
+            color: #4a5568;
+        }
+        /* Scrollbar styling for content panels */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            max-height: 300px;
+        }
+    </style>
+    
+    <!-- Google Fonts for Traditional Chinese -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- REQUIRED PLACEHOLDERS -->
+    <!-- Chosen Palette: "Academic Warmth" - Grounded in #fdfbf7 (Paper) with distinct, accessible distinct colors for each geometric entity (Blue/Green/Orange/Purple) to aid visual differentiation. -->
+    
+    <!-- Application Structure Plan: 
+         Designed as a "Digital Lab Bench". 
+         1. Left Column: The "Experiment" (Interactive Canvas). This is persistent so users can manipulate the triangle while reading different theories.
+         2. Right Column: The "Notebook" (Tabbed Content). Contextual explanations that update based on the selected topic.
+         3. Dynamic Data: Real-time calculation panels bridging the visual and the numerical.
+         Rationale: Geometry is visual. Separating the text from the diagram often breaks flow. This side-by-side layout allows "Read-Do-Verify" loops.
+    -->
+    
+    <!-- Visualization & Content Choices:
+         1. HTML5 Canvas (Custom Engine): Needed for the Triangle Lab. Standard chart libraries cannot handle arbitrary interactive geometry dragging efficiently.
+         2. Plotly.js: Used for the "Euler Line Analysis" scatter plot. Goal: To prove linearity numerically. Justification: Plotly handles coordinate plotting perfectly and meets the library requirement (No SVG).
+         3. Dynamic Text: Real-time property updates (e.g., "Is Obtuse?", "Coordinates") to reinforce the connection between shape and numbers.
+    -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-paper text-ink font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm z-10">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-gray-800">幾何探究：三角形的四心與尤拉線</h1>
+            <p class="text-xs text-gray-500">進階數學教材 | 互動實驗室</p>
+        </div>
+        <div class="text-sm text-gray-600 hidden md:block">
+            <span class="mr-4"><span class="inline-block w-3 h-3 rounded-full bg-geo-blue mr-1"></span>外心 O</span>
+            <span class="mr-4"><span class="inline-block w-3 h-3 rounded-full bg-geo-green mr-1"></span>內心 I</span>
+            <span class="mr-4"><span class="inline-block w-3 h-3 rounded-full bg-geo-orange mr-1"></span>重心 G</span>
+            <span class="mr-4"><span class="inline-block w-3 h-3 rounded-full bg-geo-purple mr-1"></span>垂心 H</span>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- LEFT PANEL: Interactive Canvas (The Lab) -->
+        <div class="flex-1 bg-gray-50 relative flex flex-col p-4">
+            <!-- Canvas Toolbar -->
+            <div class="absolute top-6 left-6 bg-white/90 backdrop-blur p-2 rounded-lg shadow-md z-10 text-xs space-y-2 border border-gray-200">
+                <div class="font-bold mb-1 border-b pb-1">顯示設定</div>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-circumcenter" checked class="accent-geo-blue">
+                    <span>外心 (O) & 中垂線</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-incenter" class="accent-geo-green">
+                    <span>內心 (I) & 角平分線</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-centroid" class="accent-geo-orange">
+                    <span>重心 (G) & 中線</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-orthocenter" class="accent-geo-purple">
+                    <span>垂心 (H) & 高</span>
+                </label>
+                <div class="border-t pt-1 mt-1"></div>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="toggle-euler" class="accent-geo-red">
+                    <span class="font-bold text-geo-red">尤拉線 (Euler Line)</span>
+                </label>
+            </div>
+
+            <div class="absolute bottom-6 left-6 text-gray-400 text-xs pointer-events-none">
+                拖曳頂點 A, B, C 以改變三角形
+            </div>
+
+            <!-- The Canvas -->
+            <div class="w-full h-full bg-white rounded-xl shadow-inner border border-gray-200 relative overflow-hidden" id="canvas-container">
+                <canvas id="geoCanvas" class="w-full h-full cursor-move"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Educational Content (The Textbook) -->
+        <div class="lg:w-[450px] xl:w-[500px] bg-white border-l border-gray-200 flex flex-col shadow-xl z-20">
+            
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-gray-200 overflow-x-auto hide-scrollbar">
+                <button onclick="switchTab('intro')" class="nav-tab tab-active px-4 py-3 text-sm whitespace-nowrap" id="tab-intro">總覽</button>
+                <button onclick="switchTab('circum')" class="nav-tab tab-inactive px-4 py-3 text-sm whitespace-nowrap" id="tab-circum">外心</button>
+                <button onclick="switchTab('in')" class="nav-tab tab-inactive px-4 py-3 text-sm whitespace-nowrap" id="tab-in">內心</button>
+                <button onclick="switchTab('cent')" class="nav-tab tab-inactive px-4 py-3 text-sm whitespace-nowrap" id="tab-cent">重心</button>
+                <button onclick="switchTab('ortho')" class="nav-tab tab-inactive px-4 py-3 text-sm whitespace-nowrap" id="tab-ortho">垂心</button>
+                <button onclick="switchTab('euler')" class="nav-tab tab-inactive px-4 py-3 text-sm whitespace-nowrap text-geo-red font-bold" id="tab-euler">尤拉線</button>
+            </div>
+
+            <!-- Scrollable Content Area -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 bg-paper" id="content-area">
+                
+                <!-- CONTENT: INTRO -->
+                <div id="content-intro" class="content-section">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800">幾何學的「心」</h2>
+                    <p class="mb-4 text-gray-600 leading-relaxed">
+                        在國中數學課程中，我們通常會接觸到三角形的一些基本性質。然而，三角形內部隱藏著四個非常特殊的點，統稱為「四心」。這些點不僅是作圖的結果，更代表了物理學、工程學和幾何美學中的重要概念。
+                    </p>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                        <h3 class="font-bold text-blue-700 mb-1">互動指南</h3>
+                        <p class="text-sm text-blue-600">
+                            左側是一個互動實驗室。您可以隨意<b>拖曳三角形的頂點 A、B、C</b>。觀察當三角形從銳角變為直角、再變為鈍角時，這些「心」的位置會發生什麼變化。
+                        </p>
+                    </div>
+
+                    <h3 class="text-lg font-bold mb-3 border-b pb-2">本教材涵蓋範圍</h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <span class="bg-geo-blue text-white px-2 py-0.5 rounded text-xs mr-2 mt-0.5">外心</span>
+                            <span><b>Circumcenter</b>：三邊中垂線的交點，到三頂點等距。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-geo-green text-white px-2 py-0.5 rounded text-xs mr-2 mt-0.5">內心</span>
+                            <span><b>Incenter</b>：三內角平分線的交點，到三邊等距。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-geo-orange text-white px-2 py-0.5 rounded text-xs mr-2 mt-0.5">重心</span>
+                            <span><b>Centroid</b>：三中線的交點，三角形的質量中心。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="bg-geo-purple text-white px-2 py-0.5 rounded text-xs mr-2 mt-0.5">垂心</span>
+                            <span><b>Orthocenter</b>：三高的交點。</span>
+                        </li>
+                    </ul>
+
+                    <div class="mt-8 p-4 bg-white rounded border shadow-sm">
+                        <h4 class="font-bold text-gray-700 mb-2">當前三角形數據</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="block text-gray-500 text-xs">類型</span>
+                                <span id="data-type" class="font-mono font-bold">-</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-500 text-xs">面積</span>
+                                <span id="data-area" class="font-mono">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENT: CIRCUMCENTER -->
+                <div id="content-circum" class="content-section hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-geo-blue text-white flex items-center justify-center font-bold mr-3">O</div>
+                        <h2 class="text-2xl font-bold text-gray-800">外心 (Circumcenter)</h2>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-4 text-sm">
+                        外心是三角形<b>外接圓 (Circumcircle)</b> 的圓心。它是三角形三邊<b>中垂線 (Perpendicular Bisector)</b> 的交點。
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <h3 class="font-bold text-geo-blue mb-2">核心性質</h3>
+                            <ul class="list-disc list-inside text-sm space-y-1 text-gray-700">
+                                <li>到三個頂點距離相等：<span class="font-mono bg-gray-100 px-1">OA = OB = OC = R</span></li>
+                                <li>是外接圓的圓心。</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <h3 class="font-bold text-gray-700 mb-2">位置與形狀的關係</h3>
+                            <p class="text-sm text-gray-600 mb-2">試著拖曳頂點改變三角形形狀：</p>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="p-2 bg-gray-50 rounded border" id="state-acute">
+                                    <div class="font-bold">銳角三角形</div>
+                                    <div class="text-gray-500">在內部</div>
+                                </div>
+                                <div class="p-2 bg-gray-50 rounded border" id="state-right">
+                                    <div class="font-bold">直角三角形</div>
+                                    <div class="text-gray-500">斜邊中點</div>
+                                </div>
+                                <div class="p-2 bg-gray-50 rounded border" id="state-obtuse">
+                                    <div class="font-bold">鈍角三角形</div>
+                                    <div class="text-gray-500">在外部</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENT: INCENTER -->
+                <div id="content-in" class="content-section hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-geo-green text-white flex items-center justify-center font-bold mr-3">I</div>
+                        <h2 class="text-2xl font-bold text-gray-800">內心 (Incenter)</h2>
+                    </div>
+
+                    <p class="text-gray-600 mb-4 text-sm">
+                        內心是三角形<b>內切圓 (Incircle)</b> 的圓心。它是三角形三個<b>內角平分線 (Angle Bisector)</b> 的交點。
+                    </p>
+
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
+                        <h3 class="font-bold text-green-800 mb-2 text-sm">重要性質</h3>
+                        <ul class="list-disc list-inside text-sm space-y-2 text-green-900">
+                            <li>到三邊的垂直距離相等 (即內切圓半徑 r)。</li>
+                            <li><b>永遠位於三角形內部</b>，無論形狀如何。</li>
+                            <li>面積公式：<span class="font-mono">Area = r × s</span> <br><span class="text-xs opacity-75">(其中 s 為半周長)</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- CONTENT: CENTROID -->
+                <div id="content-cent" class="content-section hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-geo-orange text-white flex items-center justify-center font-bold mr-3">G</div>
+                        <h2 class="text-2xl font-bold text-gray-800">重心 (Centroid)</h2>
+                    </div>
+
+                    <p class="text-gray-600 mb-4 text-sm">
+                        重心是三角形的物理平衡點。它是三條<b>中線 (Median)</b> 的交點。中線是連接頂點與對邊中點的線段。
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <h3 class="font-bold text-geo-orange mb-2">黃金比例 2:1</h3>
+                            <p class="text-sm text-gray-600 mb-2">
+                                重心將每條中線分為兩段，長度比為 2:1（頂點到重心 : 重心到對邊中點）。
+                            </p>
+                            <div class="h-4 w-full bg-gray-200 rounded-full overflow-hidden flex text-xs text-white text-center font-bold leading-4">
+                                <div class="w-2/3 bg-geo-orange">2 (AG)</div>
+                                <div class="w-1/3 bg-orange-300">1 (GM)</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                            <h3 class="font-bold text-gray-700 mb-2">面積性質</h3>
+                            <p class="text-sm text-gray-600">
+                                三條中線將三角形分割成 6 個面積相等的小三角形。這在土地分割問題中非常有用。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONTENT: ORTHOCENTER -->
+                <div id="content-ortho" class="content-section hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-geo-purple text-white flex items-center justify-center font-bold mr-3">H</div>
+                        <h2 class="text-2xl font-bold text-gray-800">垂心 (Orthocenter)</h2>
+                    </div>
+
+                    <p class="text-gray-600 mb-4 text-sm">
+                        垂心是三角形三條<b>高 (Altitude)</b> 的交點。高是從頂點向對邊（或其延長線）所作的垂線。
+                    </p>
+
+                    <div class="alert bg-purple-50 text-purple-900 p-4 rounded text-sm mb-4">
+                        <span class="font-bold">觀察重點：</span> 嘗試將三角形變成鈍角三角形。你會發現垂心會跑到三角形的<b>外部</b>。
+                    </div>
+
+                    <table class="w-full text-sm text-left text-gray-600 border rounded overflow-hidden">
+                        <thead class="bg-gray-100 text-gray-800 font-bold">
+                            <tr>
+                                <th class="p-2 border-b">三角形類型</th>
+                                <th class="p-2 border-b">垂心位置</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="p-2">銳角</td>
+                                <td class="p-2">內部</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="p-2">直角</td>
+                                <td class="p-2">直角頂點上</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2">鈍角</td>
+                                <td class="p-2">外部 (對邊的後方)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- CONTENT: EULER LINE -->
+                <div id="content-euler" class="content-section hidden">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-full bg-geo-red text-white flex items-center justify-center font-bold mr-3">E</div>
+                        <h2 class="text-2xl font-bold text-gray-800">尤拉線 (Euler Line)</h2>
+                    </div>
+
+                    <p class="text-gray-600 mb-4 text-sm">
+                        瑞士數學家尤拉 (Euler) 發現了一個驚人的事實：在任意三角形中（正三角形除外），<b>外心(O)、重心(G)、垂心(H)</b> 永遠共線！這條線被稱為尤拉線。
+                    </p>
+
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm mb-6">
+                        <h3 class="font-bold text-gray-700 mb-2 text-sm">神秘的 1:2 關係</h3>
+                        <p class="text-sm text-gray-600 mb-3">
+                            不僅共線，它們之間的距離還有固定的比例關係：重心 (G) 到垂心 (H) 的距離是重心到外心 (O) 距離的兩倍。
+                        </p>
+                        <div class="flex items-center justify-center space-x-1 text-xs font-mono font-bold">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-geo-blue rounded-full mb-1"></div>O
+                            </div>
+                            <div class="h-0.5 bg-gray-300 w-12 relative">
+                                <span class="absolute -top-4 left-1/2 transform -translate-x-1/2 text-gray-500">1</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-geo-orange rounded-full mb-1"></div>G
+                            </div>
+                            <div class="h-0.5 bg-gray-300 w-24 relative">
+                                <span class="absolute -top-4 left-1/2 transform -translate-x-1/2 text-gray-500">2</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 bg-geo-purple rounded-full mb-1"></div>H
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualization for Proof -->
+                    <h3 class="font-bold text-gray-800 mb-2 text-sm">數據驗證</h3>
+                    <p class="text-xs text-gray-500 mb-2">下方圖表實時繪製三心的座標位置，驗證它們是否在同一條直線上。</p>
+                    
+                    <!-- Container for Plotly chart -->
+                    <div class="chart-container border rounded bg-white">
+                        <div id="euler-chart" style="width:100%; height:100%;"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- GEOMETRY ENGINE ---
+        
+        const canvas = document.getElementById('geoCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        // State
+        let width, height;
+        let points = [
+            { x: 0, y: 0, label: 'A' },
+            { x: 0, y: 0, label: 'B' },
+            { x: 0, y: 0, label: 'C' }
+        ];
+        let draggingPoint = null;
+        
+        // Toggles
+        const toggles = {
+            circum: document.getElementById('toggle-circumcenter'),
+            in: document.getElementById('toggle-incenter'),
+            cent: document.getElementById('toggle-centroid'),
+            ortho: document.getElementById('toggle-orthocenter'),
+            euler: document.getElementById('toggle-euler')
+        };
+
+        // Data Display Elements
+        const elDataType = document.getElementById('data-type');
+        const elDataArea = document.getElementById('data-area');
+        const stateAcute = document.getElementById('state-acute');
+        const stateRight = document.getElementById('state-right');
+        const stateObtuse = document.getElementById('state-obtuse');
+
+        // Initialization
+        function initCanvas() {
+            resizeCanvas();
+            // Default Triangle Position (centered)
+            const cx = width / 2;
+            const cy = height / 2;
+            points[0] = { x: cx, y: cy - 150, label: 'A' };
+            points[1] = { x: cx - 180, y: cy + 120, label: 'B' };
+            points[2] = { x: cx + 180, y: cy + 120, label: 'C' };
+            
+            // Add Listeners
+            canvas.addEventListener('mousedown', onPointerDown);
+            canvas.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+            canvas.addEventListener('touchstart', onPointerDown, {passive: false});
+            canvas.addEventListener('touchmove', onPointerMove, {passive: false});
+            window.addEventListener('touchend', onPointerUp);
+            
+            // Toggle Listeners
+            Object.values(toggles).forEach(t => t.addEventListener('change', draw));
+
+            draw();
+        }
+
+        function resizeCanvas() {
+            width = container.clientWidth;
+            height = container.clientHeight;
+            // Handle HiDPI
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            draw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- MATH HELPERS ---
+
+        function dist(p1, p2) {
+            return Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2);
+        }
+
+        function midPoint(p1, p2) {
+            return { x: (p1.x + p2.x)/2, y: (p1.y + p2.y)/2 };
+        }
+
+        function getSlope(p1, p2) {
+            if (p2.x === p1.x) return Infinity;
+            return (p2.y - p1.y) / (p2.x - p1.x);
+        }
+
+        // Get line ax + by = c from two points
+        function getLine(p1, p2) {
+            const a = p1.y - p2.y;
+            const b = p2.x - p1.x;
+            const c = a*p1.x + b*p1.y;
+            return {a, b, c};
+        }
+
+        // Intersection of two lines (ax+by=c)
+        function intersect(L1, L2) {
+            const det = L1.a * L2.b - L2.a * L1.b;
+            if (Math.abs(det) < 1e-6) return null; // Parallel
+            const x = (L2.b * L1.c - L1.b * L2.c) / det;
+            const y = (L1.a * L2.c - L2.a * L1.c) / det;
+            return { x, y };
+        }
+
+        // Perpendicular line to segment p1-p2 passing through p3
+        function getPerpendicularLine(p1, p2, p3) {
+            // Slope of p1-p2 is m. Perp slope is -1/m.
+            // General form: -b x + a y = K
+            // Use vector (a, b) from getLine which is normal to p1-p2.
+            // The line p1-p2 has normal (a,b). 
+            // We want a line parallel to (a,b) passing through p3? No.
+            // p1-p2 direction is (dx, dy). Normal is (-dy, dx).
+            // Altitude direction is normal to base.
+            
+            // Simpler:
+            // Line p1-p2: a x + b y = c. Normal vector is (a, b).
+            // Altitude is parallel to normal vector (a, b).
+            // Equation: b x - a y = K.
+            const L = getLine(p1, p2);
+            // Altitude: L.b * x - L.a * y = L.b * p3.x - L.a * p3.y
+            const newA = L.b;
+            const newB = -L.a;
+            const newC = newA * p3.x + newB * p3.y;
+            return { a: newA, b: newB, c: newC };
+        }
+
+        // --- CENTER CALCULATIONS ---
+
+        function getCentroid(A, B, C) {
+            return {
+                x: (A.x + B.x + C.x) / 3,
+                y: (A.y + B.y + C.y) / 3
+            };
+        }
+
+        function getCircumcenter(A, B, C) {
+            // Perpendicular bisector of AB
+            const midAB = midPoint(A, B);
+            const L_AB = getLine(A, B);
+            const PB_AB = { a: L_AB.b, b: -L_AB.a, c: L_AB.b*midAB.x - L_AB.a*midAB.y };
+
+            // Perpendicular bisector of BC
+            const midBC = midPoint(B, C);
+            const L_BC = getLine(B, C);
+            const PB_BC = { a: L_BC.b, b: -L_BC.a, c: L_BC.b*midBC.x - L_BC.a*midBC.y };
+
+            return intersect(PB_AB, PB_BC);
+        }
+
+        function getOrthocenter(A, B, C) {
+            // Altitude from C to AB
+            const altC = getPerpendicularLine(A, B, C);
+            // Altitude from A to BC
+            const altA = getPerpendicularLine(B, C, A);
+            return intersect(altC, altA);
+        }
+
+        function getIncenter(A, B, C) {
+            const a = dist(B, C);
+            const b = dist(A, C);
+            const c = dist(A, B);
+            const p = a + b + c;
+            return {
+                x: (a*A.x + b*B.x + c*C.x) / p,
+                y: (a*A.y + b*B.y + c*C.y) / p,
+                r: Math.abs(0.5 * ((A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y)))) * 2 / p // Area*2 / perimeter
+            };
+        }
+
+        // --- DRAWING ---
+
+        function drawPoint(p, color, label) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            if (label) {
+                ctx.fillStyle = '#2d3748';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.fillText(label, p.x + 8, p.y - 8);
+            }
+        }
+
+        function drawLine(p1, p2, color, width=1, dash=[]) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.setLineDash(dash);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawExtension(p1, p2, color) {
+            // Draw line through p1 and p2 extending to screen bounds
+            // Simplification: just draw long enough
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            if(len < 1) return;
+            const ux = dx/len;
+            const uy = dy/len;
+            
+            const ext1 = { x: p1.x - ux*1000, y: p1.y - uy*1000 };
+            const ext2 = { x: p2.x + ux*1000, y: p2.y + uy*1000 };
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 4]);
+            ctx.beginPath();
+            ctx.moveTo(ext1.x, ext1.y);
+            ctx.lineTo(ext2.x, ext2.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            const A = points[0];
+            const B = points[1];
+            const C = points[2];
+
+            // 1. Draw Triangle Base
+            ctx.fillStyle = 'rgba(237, 242, 247, 0.5)';
+            ctx.beginPath();
+            ctx.moveTo(A.x, A.y);
+            ctx.lineTo(B.x, B.y);
+            ctx.lineTo(C.x, C.y);
+            ctx.closePath();
+            ctx.fill();
+            
+            drawLine(A, B, '#4a5568', 2);
+            drawLine(B, C, '#4a5568', 2);
+            drawLine(C, A, '#4a5568', 2);
+
+            // Calculations
+            const O = getCircumcenter(A, B, C);
+            const G = getCentroid(A, B, C);
+            const H = getOrthocenter(A, B, C);
+            const I = getIncenter(A, B, C);
+
+            // --- LAYERS ---
+
+            // CIRCUMCENTER (O)
+            if (toggles.circum.checked && O) {
+                // Perpendicular Bisectors
+                const midAB = midPoint(A, B);
+                const midBC = midPoint(B, C);
+                const midCA = midPoint(C, A);
+                
+                drawExtension(midAB, O, 'rgba(59, 130, 246, 0.3)');
+                drawExtension(midBC, O, 'rgba(59, 130, 246, 0.3)');
+                drawExtension(midCA, O, 'rgba(59, 130, 246, 0.3)');
+                
+                // Circumcircle
+                const R = dist(O, A);
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(O.x, O.y, R, 0, Math.PI * 2);
+                ctx.stroke();
+
+                drawPoint(O, '#3b82f6', 'O');
+            }
+
+            // CENTROID (G)
+            if (toggles.cent.checked) {
+                const midAB = midPoint(A, B);
+                const midBC = midPoint(B, C);
+                const midCA = midPoint(C, A);
+
+                drawLine(A, midBC, 'rgba(245, 158, 11, 0.4)');
+                drawLine(B, midCA, 'rgba(245, 158, 11, 0.4)');
+                drawLine(C, midAB, 'rgba(245, 158, 11, 0.4)');
+
+                drawPoint(G, '#f59e0b', 'G');
+            }
+
+            // ORTHOCENTER (H)
+            if (toggles.ortho.checked && H) {
+                drawExtension(A, H, 'rgba(139, 92, 246, 0.3)');
+                drawExtension(B, H, 'rgba(139, 92, 246, 0.3)');
+                drawExtension(C, H, 'rgba(139, 92, 246, 0.3)');
+                drawPoint(H, '#8b5cf6', 'H');
+            }
+
+            // INCENTER (I)
+            if (toggles.in.checked) {
+                drawLine(A, I, 'rgba(16, 185, 129, 0.3)');
+                drawLine(B, I, 'rgba(16, 185, 129, 0.3)');
+                drawLine(C, I, 'rgba(16, 185, 129, 0.3)');
+                
+                // Incircle
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(I.x, I.y, I.r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                drawPoint(I, '#10b981', 'I');
+            }
+
+            // EULER LINE
+            if (toggles.euler.checked && O && H) {
+                drawLine(O, H, '#ef4444', 2, [5, 3]);
+                // Ensure points are drawn on top if their toggles are off
+                if (!toggles.circum.checked) drawPoint(O, '#3b82f6', 'O');
+                if (!toggles.cent.checked) drawPoint(G, '#f59e0b', 'G');
+                if (!toggles.ortho.checked) drawPoint(H, '#8b5cf6', 'H');
+            }
+
+            // Draw Vertices
+            points.forEach(p => {
+                ctx.fillStyle = '#2d3748';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText(p.label, p.x-4, p.y+4);
+            });
+            
+            updateData(A, B, C, O, G, H);
+        }
+
+        // --- INTERACTION ---
+
+        function onPointerDown(e) {
+            e.preventDefault();
+            const pos = getPos(e);
+            // Check hit test
+            for (let p of points) {
+                if (dist(pos, p) < 20) {
+                    draggingPoint = p;
+                    return;
+                }
+            }
+        }
+
+        function onPointerMove(e) {
+            e.preventDefault();
+            if (draggingPoint) {
+                const pos = getPos(e);
+                draggingPoint.x = pos.x;
+                draggingPoint.y = pos.y;
+                draw();
+            }
+        }
+
+        function onPointerUp(e) {
+            draggingPoint = null;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        // --- UI LOGIC ---
+
+        function updateData(A, B, C, O, G, H) {
+            // Triangle Edges (squared lengths for pythagoras check)
+            const a2 = (B.x-C.x)**2 + (B.y-C.y)**2;
+            const b2 = (A.x-C.x)**2 + (A.y-C.y)**2;
+            const c2 = (A.x-B.x)**2 + (A.y-B.y)**2;
+            
+            const sides = [a2, b2, c2].sort((x, y) => x - y);
+            const diff = sides[0] + sides[1] - sides[2];
+            
+            let type = "直角";
+            stateAcute.className = "p-2 bg-gray-50 rounded border opacity-50";
+            stateRight.className = "p-2 bg-gray-50 rounded border opacity-50";
+            stateObtuse.className = "p-2 bg-gray-50 rounded border opacity-50";
+
+            if (Math.abs(diff) < 100) { // Tolerance
+                type = "直角 (Right)";
+                stateRight.className = "p-2 bg-blue-50 border-blue-300 rounded border shadow-sm transform scale-105 transition-all";
+            } else if (diff > 0) {
+                type = "銳角 (Acute)";
+                stateAcute.className = "p-2 bg-blue-50 border-blue-300 rounded border shadow-sm transform scale-105 transition-all";
+            } else {
+                type = "鈍角 (Obtuse)";
+                stateObtuse.className = "p-2 bg-blue-50 border-blue-300 rounded border shadow-sm transform scale-105 transition-all";
+            }
+
+            elDataType.innerText = type;
+
+            // Area (Shoelace formula)
+            const area = Math.abs(0.5 * (A.x*(B.y-C.y) + B.x*(C.y-A.y) + C.x*(A.y-B.y)));
+            elDataArea.innerText = Math.round(area).toLocaleString();
+
+            // Update Plotly if visible
+            if (document.getElementById('content-euler').classList.contains('hidden') === false) {
+                updateEulerChart(O, G, H);
+            }
+        }
+
+        function switchTab(id) {
+            // Hide all contents
+            document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+            // Show selected
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+            
+            // Reset Tabs
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('tab-inactive');
+            });
+            // Active Tab
+            const activeBtn = document.getElementById(`tab-${id}`);
+            activeBtn.classList.remove('tab-inactive');
+            activeBtn.classList.add('tab-active');
+
+            // Auto-trigger toggles for better UX
+            if (id === 'circum') toggles.circum.checked = true;
+            if (id === 'in') toggles.in.checked = true;
+            if (id === 'cent') toggles.cent.checked = true;
+            if (id === 'ortho') toggles.ortho.checked = true;
+            if (id === 'euler') {
+                toggles.euler.checked = true;
+                toggles.circum.checked = true;
+                toggles.cent.checked = true;
+                toggles.ortho.checked = true;
+                // Force redraw to update chart
+                draw();
+            }
+            draw();
+        }
+
+        function updateEulerChart(O, G, H) {
+            if (!O || !G || !H) return;
+            
+            // Transform coordinates to be relative to G for nicer plotting, or just raw
+            // Note: Canvas Y is inverted relative to standard Cartesian.
+            // We plot raw Canvas coords but label them X/Y
+            
+            const trace1 = {
+                x: [O.x, G.x, H.x],
+                y: [-O.y, -G.y, -H.y], // Invert Y for standard math orientation visual
+                mode: 'markers+text',
+                type: 'scatter',
+                text: ['O', 'G', 'H'],
+                textposition: 'top right',
+                marker: { size: 12, color: ['#3b82f6', '#f59e0b', '#8b5cf6'] }
+            };
+
+            // Regression Line (Visual Proof)
+            const trace2 = {
+                x: [O.x, H.x],
+                y: [-O.y, -H.y],
+                mode: 'lines',
+                type: 'scatter',
+                line: { color: '#ef4444', width: 2, dash: 'dot' },
+                name: 'Euler Line'
+            };
+
+            const layout = {
+                title: { text: '三心共線驗證 (座標圖)', font: {size: 14} },
+                margin: { t: 40, l: 40, r: 20, b: 40 },
+                xaxis: { title: 'X 座標', showgrid: true, zeroline: false },
+                yaxis: { title: 'Y 座標 (反轉)', showgrid: true, zeroline: false },
+                showlegend: false,
+                autosize: true
+            };
+
+            const config = { responsive: true, displayModeBar: false };
+
+            Plotly.react('euler-chart', [trace2, trace1], layout, config);
+        }
+
+        // Initialize
+        initCanvas();
+        switchTab('intro');
+
+    </script>
+</body>
+</html>
