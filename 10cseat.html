@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自律選位系統 v8.0</title>
+    <style>
+        :root {
+            --primary-color: #546e7a;
+            --bg-color: #f0f2f5;
+            --sidebar-width: 250px;
+            
+            /* 柔和莫蘭迪色系 */
+            --level-critical: #ffab91; --text-critical: #bf360c;
+            --level-warning: #fff59d;  --text-warning: #f57f17;
+            --level-watch: #d7ccc8;    --text-watch: #4e342e;
+            --level-safe: #e1f5fe;     --text-safe: #01579b;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* 導航 */
+        nav {
+            background: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .nav-title { font-weight: bold; font-size: 1.2rem; color: #455a64; }
+        .nav-buttons button {
+            border: 1px solid #cfd8dc;
+            background: #fff;
+            padding: 6px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 5px;
+            color: #546e7a;
+            font-size: 1rem;
+        }
+        .nav-buttons button.active {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+        }
+
+        /* 主佈局 */
+        .layout-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- 左側待選區 --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            z-index: 5;
+        }
+
+        .sidebar-header { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        
+        .waiting-area {
+            flex: 1;
+            overflow-y: auto;
+            border: 2px dashed #cfd8dc;
+            border-radius: 8px;
+            padding: 10px;
+            background: #fafafa;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+        }
+        .waiting-area.drag-over { background: #e8f5e9; border-color: #66bb6a; }
+
+        /* --- 右側教室區 --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+            background: #eceff1;
+        }
+
+        .classroom-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .toolbar {
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 8px 20px;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 24px; /* 加大按鈕適合觸控 */
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #fff;
+            font-size: 1rem;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-green { background: #81c784; color: #1b5e20; } .btn-green:hover { background: #66bb6a; }
+        .btn-red { background: #ef9a9a; color: #b71c1c; } .btn-red:hover { background: #ef5350; }
+        .btn-blue { background: #64b5f6; color: #0d47a1; } .btn-blue:hover { background: #42a5f5; }
+        .btn-gray { background: #cfd8dc; color: #455a64; } .btn-gray:hover { background: #b0bec5; }
+
+        /* 教室網格 */
+        .classroom-grid {
+            background: #fff;
+            padding: 40px 60px 40px 40px; 
+            border: 4px solid #546e7a;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative;
+            display: grid;
+            grid-template-columns: 90px 30px 90px 90px 30px 90px 90px 30px 90px 90px 50px;
+            grid-gap: 15px 5px; 
+            user-select: none; /* 防止選取文字變藍 */
+        }
+
+        .whiteboard {
+            grid-column: 3 / span 8;
+            height: 40px;
+            background: #f5f5f5;
+            border: 2px solid #cfd8dc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #90a4ae;
+            margin-bottom: 20px;
+        }
+        .door {
+            position: absolute; right: -25px; width: 40px; height: 80px;
+            background: #eceff1; border: 2px solid #b0bec5;
+            writing-mode: vertical-rl; display: flex; align-items: center;
+            justify-content: center; font-weight: bold; color: #78909c; z-index: 2;
+        }
+        .door-front { top: 100px; } .door-back { bottom: 80px; }
+
+        .seat-box {
+            height: 60px;
+            background: #fafafa;
+            border: 2px dashed #cfd8dc;
+            border-radius: 6px;
+            position: relative;
+            width: 100%;
+        }
+        .seat-box.drag-over { background: #e1f5fe; border-color: #29b6f6; }
+
+        .card {
+            width: 85px; height: 45px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold; cursor: grab;
+            border-radius: 5px; border: 1px solid rgba(0,0,0,0.05);
+            user-select: none; box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            text-align: center; line-height: 1.1;
+        }
+        .seat-box .card { width: 100%; height: 100%; font-size: 16px; }
+        .card:active { cursor: grabbing; transform: scale(1.05); }
+
+        .card.lvl-critical { background: var(--level-critical); color: var(--text-critical); }
+        .card.lvl-warning { background: var(--level-warning); color: var(--text-warning); }
+        .card.lvl-watch { background: var(--level-watch); color: var(--text-watch); }
+        .card.lvl-safe { background: var(--level-safe); color: var(--text-safe); }
+
+        /* Grid Mapping */
+        .r1-c2 { grid-column: 3; } .r1-c3 { grid-column: 4; } .r1-c4 { grid-column: 6; } .r1-c5 { grid-column: 7; } .r1-c6 { grid-column: 9; } .r1-c7 { grid-column: 10; }
+        .r2-c1 { grid-column: 1; } .r2-c2 { grid-column: 3; } .r2-c3 { grid-column: 4; } .r2-c4 { grid-column: 6; } .r2-c5 { grid-column: 7; } .r2-c6 { grid-column: 9; } .r2-c7 { grid-column: 10; }
+        .r3-c1 { grid-column: 1; } .r3-c2 { grid-column: 3; } .r3-c3 { grid-column: 4; } .r3-c4 { grid-column: 6; } .r3-c5 { grid-column: 7; } .r3-c6 { grid-column: 9; } .r3-c7 { grid-column: 10; }
+        .r4-c1 { grid-column: 1; } .r4-c2 { grid-column: 3; } .r4-c3 { grid-column: 4; } .r4-c4 { grid-column: 6; } .r4-c5 { grid-column: 7; } .r4-c6 { grid-column: 9; } .r4-c7 { grid-column: 10; }
+
+        /* --- 後台表格輸入介面 --- */
+        .page-section { display: none; width: 100%; }
+        .page-section.active { display: block; }
+        
+        .admin-wrapper { padding: 20px; max-width: 900px; margin: 0 auto; }
+        .admin-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        
+        textarea#pasteArea { 
+            width: 100%; height: 80px; padding: 10px; 
+            border: 2px dashed #90a4ae; border-radius: 4px; 
+            background: #eceff1; font-family: monospace; color: #555;
+        }
+        
+        .edit-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed;}
+        .edit-table th { background: #546e7a; color: white; padding: 10px; text-align: center; font-size: 0.9rem;}
+        .edit-table td { border-bottom: 1px solid #eee; padding: 5px; text-align: center;}
+        
+        .edit-input { 
+            width: 90%; padding: 6px; border: 1px solid #ddd; 
+            border-radius: 4px; font-size: 14px; text-align: center;
+        }
+        .edit-input:focus { border-color: var(--primary-color); outline: none; background: #e3f2fd; }
+        .name-input { text-align: left; }
+
+        .score-cell { font-weight: bold; font-size: 1.1em; }
+        .score-red { color: #d32f2f; }
+        .score-yellow { color: #f57f17; }
+        .score-blue { color: #1976d2; }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-title">班級選位系統</div>
+    <div class="nav-buttons">
+        <button onclick="tryEnterAdmin()" id="btn-admin">🔒 資料編輯</button>
+        <button onclick="switchView('classroom')" id="btn-classroom" class="active">🏫 選位前台</button>
+    </div>
+</nav>
+
+<div class="layout-container">
+    
+    <div id="view-admin" class="page-section" style="overflow-y:auto;">
+        <div class="admin-wrapper">
+            <div class="admin-box">
+                <h3>第一步：從 Excel 貼上資料</h3>
+                <p style="color:#666; font-size: 0.9em;">欄位順序：[ 姓名 ] [ 違規 ] [ 3C ] [ 行為 ]</p>
+                <textarea id="pasteArea" placeholder="請在此貼上 Excel 內容..."></textarea>
+                <div style="margin-top:10px;">
+                    <button class="btn btn-gray" onclick="parseExcelData()">⬇️ 解析並填入表格</button>
+                </div>
+
+                <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
+
+                <h3>第二步：確認與修改</h3>
+                <form id="studentForm">
+                    <table class="edit-table">
+                        <thead>
+                            <tr>
+                                <th style="width:30%">姓名</th>
+                                <th style="width:15%">違規 (x2.5)</th>
+                                <th style="width:15%">3C (x1.5)</th>
+                                <th style="width:15%">行為 (x1)</th>
+                                <th style="width:25%">預覽總分</th>
+                            </tr>
+                        </thead>
+                        <tbody id="editableTableBody">
+                            </tbody>
+                    </table>
+                </form>
+                <div style="margin-top:20px; text-align:right;">
+                    <button class="btn btn-blue" onclick="saveToSystem()">💾 儲存 (更新前台)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-classroom" class="page-section active" style="height:100%; display:flex;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="btn btn-green" style="width:100%;" onclick="sortWaitingArea()">⇅ 整理名單</button>
+            </div>
+            <div id="waiting-area" class="waiting-area"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="classroom-wrapper">
+                <div class="toolbar">
+                    <button class="btn btn-red" onclick="clearAllSeats()">🧹 清空座位</button>
+                    <button class="btn btn-blue" onclick="randomFill()">🎲 隨機入座</button>
+                </div>
+                <div class="classroom-grid" id="classroom">
+                    <div class="whiteboard">White Board</div>
+                    <div class="door door-front">前</div>
+                    <div class="door door-back">後</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allStudents = [];
+    const layoutClasses = [
+        "r1-c2", "r1-c3", "r1-c4", "r1-c5", "r1-c6", "r1-c7",
+        "r2-c1", "r2-c2", "r2-c3", "r2-c4", "r2-c5", "r2-c6", "r2-c7",
+        "r3-c1", "r3-c2", "r3-c3", "r3-c4", "r3-c5", "r3-c6", "r3-c7",
+        "r4-c1", "r4-c2", "r4-c3", "r4-c4", "r4-c5", "r4-c6", "r4-c7"
+    ];
+
+    // 預設範例資料 (若無 localStorage 紀錄時使用)
+    const defaultData = [
+        {name: "Wayne Ting", v:2, p:4, b:5}, {name: "Hank Lu", v:0, p:1, b:0}
+    ];
+
+    window.onload = function() {
+        // 嘗試從 localStorage 讀取舊資料
+        const saved = localStorage.getItem('classSeatingData_v8');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            renderEditableTable(parsed);
+        } else {
+            renderEditableTable(defaultData);
+        }
+        saveToSystem(false); // 初始化但不跳 alert
+    };
+
+    // --- 安全鎖邏輯 ---
+    function tryEnterAdmin() {
+        const pass = prompt("請輸入老師密碼以進入編輯模式：", "");
+        // 預設密碼 1234
+        if (pass === "1234") {
+            switchView('admin');
+        } else if (pass !== null) {
+            alert("密碼錯誤！");
+        }
+    }
+
+    function switchView(view) {
+        document.getElementById('view-admin').classList.remove('active');
+        document.getElementById('view-classroom').classList.remove('active'); 
+        
+        if(view === 'admin') {
+            document.getElementById('view-admin').classList.add('active');
+            document.getElementById('view-classroom').style.display = 'none';
+        } else {
+            document.getElementById('view-classroom').classList.add('active');
+            document.getElementById('view-classroom').style.display = 'flex';
+        }
+
+        document.getElementById('btn-admin').classList.toggle('active', view === 'admin');
+        document.getElementById('btn-classroom').classList.toggle('active', view === 'classroom');
+    }
+
+    // --- 資料解析 & 編輯 ---
+    function parseExcelData() {
+        const text = document.getElementById('pasteArea').value.trim();
+        if(!text) return alert("請先貼上資料！");
+
+        const lines = text.split('\n');
+        const parsedList = [];
+
+        lines.forEach(line => {
+            // 自動偵測 Tab 或 空白
+            const parts = line.trim().split(/[\t]+|[\s]{2,}/);
+            let safeParts = parts;
+            if (parts.length < 2) safeParts = line.trim().split(/[\s]+/);
+            if (safeParts.length < 2) return;
+
+            let b = 0, p = 0, v = 0;
+            if(safeParts.length > 1 && !isNaN(safeParts[safeParts.length-1])) b = parseFloat(safeParts.pop());
+            if(safeParts.length > 1 && !isNaN(safeParts[safeParts.length-1])) p = parseFloat(safeParts.pop());
+            if(safeParts.length > 1 && !isNaN(safeParts[safeParts.length-1])) v = parseFloat(safeParts.pop());
+            
+            let name = safeParts.join(" ");
+            parsedList.push({name, v, p, b});
+        });
+
+        renderEditableTable(parsedList);
+    }
+
+    function renderEditableTable(dataList) {
+        const tbody = document.getElementById('editableTableBody');
+        tbody.innerHTML = '';
+        dataList.forEach((s, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" class="edit-input name-input" value="${s.name}" id="name-${index}"></td>
+                <td><input type="number" class="edit-input" value="${s.v}" id="v-${index}" oninput="updateRowScore(${index})"></td>
+                <td><input type="number" class="edit-input" value="${s.p}" id="p-${index}" oninput="updateRowScore(${index})"></td>
+                <td><input type="number" class="edit-input" value="${s.b}" id="b-${index}" oninput="updateRowScore(${index})"></td>
+                <td class="score-cell" id="score-cell-${index}">0</td>
+            `;
+            tbody.appendChild(tr);
+            updateRowScore(index);
+        });
+    }
+
+    function updateRowScore(index) {
+        const v = parseFloat(document.getElementById(`v-${index}`).value) || 0;
+        const p = parseFloat(document.getElementById(`p-${index}`).value) || 0;
+        const b = parseFloat(document.getElementById(`b-${index}`).value) || 0;
+        const total = (v * 2.5) + (p * 1.5) + (b * 1);
+        const cell = document.getElementById(`score-cell-${index}`);
+        cell.innerText = total;
+        cell.className = "score-cell"; 
+        if(total >= 15) cell.classList.add("score-red");
+        else if(total >= 10) cell.classList.add("score-yellow");
+        else cell.classList.add("score-blue");
+    }
+
+    // --- 儲存與更新 ---
+    function saveToSystem(showAlert = true) {
+        const tbody = document.getElementById('editableTableBody');
+        const rows = tbody.querySelectorAll('tr');
+        allStudents = [];
+        const rawDataForSave = []; // 用於 localStorage
+
+        rows.forEach((row, index) => {
+            const name = document.getElementById(`name-${index}`).value;
+            const v = parseFloat(document.getElementById(`v-${index}`).value) || 0;
+            const p = parseFloat(document.getElementById(`p-${index}`).value) || 0;
+            const b = parseFloat(document.getElementById(`b-${index}`).value) || 0;
+            
+            rawDataForSave.push({name, v, p, b});
+
+            const score = (v * 2.5) + (p * 1.5) + (b * 1);
+            let lvl = 'lvl-safe';
+            if(score >= 15) lvl = 'lvl-critical';
+            else if(score >= 10) lvl = 'lvl-warning';
+            else if(score >= 5) lvl = 'lvl-watch';
+
+            allStudents.push({ id: index, name, v, p, b, score, lvl });
+        });
+
+        // 寫入瀏覽器記憶體
+        localStorage.setItem('classSeatingData_v8', JSON.stringify(rawDataForSave));
+
+        initClassroom();
+        clearAllSeats();
+        
+        if(showAlert && document.getElementById('view-admin').classList.contains('active')) {
+            alert("✅ 儲存成功！前台已更新。\n\n💡 提示：資料已自動記錄，下次開啟網頁會保留。");
+            switchView('classroom'); // 儲存後自動跳轉回前台
+        }
+    }
+
+    // --- 前台功能 ---
+    function initClassroom() {
+        const grid = document.getElementById('classroom');
+        const staticItems = Array.from(document.querySelectorAll('.whiteboard, .door'));
+        grid.innerHTML = '';
+        staticItems.forEach(i => grid.appendChild(i));
+
+        layoutClasses.forEach((cls, i) => {
+            const box = document.createElement('div');
+            box.className = `seat-box ${cls}`;
+            box.id = `seat-${i}`;
+            box.addEventListener('dragover', onDragOver);
+            box.addEventListener('drop', onDropSeat);
+            grid.appendChild(box);
+        });
+
+        const waitingArea = document.getElementById('waiting-area');
+        waitingArea.addEventListener('dragover', onDragOver);
+        waitingArea.addEventListener('drop', onDropWaiting);
+    }
+
+    function clearAllSeats() {
+        const waitingArea = document.getElementById('waiting-area');
+        waitingArea.innerHTML = ''; 
+        document.querySelectorAll('.seat-box').forEach(box => box.innerHTML = '');
+
+        const sorted = [...allStudents].sort((a,b) => a.score - b.score);
+        sorted.forEach(s => waitingArea.appendChild(createCard(s)));
+    }
+
+    function sortWaitingArea() {
+        const area = document.getElementById('waiting-area');
+        const cards = Array.from(area.children);
+        cards.sort((a, b) => parseFloat(a.dataset.score) - parseFloat(b.dataset.score));
+        cards.forEach(c => area.appendChild(c));
+    }
+
+    function randomFill() {
+        clearAllSeats(); 
+        const area = document.getElementById('waiting-area');
+        const cards = Array.from(area.children);
+        const seats = document.querySelectorAll('.seat-box');
+        for (let i = cards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cards[i], cards[j]] = [cards[j], cards[i]];
+        }
+        seats.forEach((seat, i) => { if (i < cards.length) seat.appendChild(cards[i]); });
+    }
+
+    function createCard(student) {
+        const el = document.createElement('div');
+        el.className = `card ${student.lvl}`;
+        el.draggable = true;
+        el.innerText = student.name;
+        el.dataset.id = student.id;
+        el.dataset.score = student.score; 
+        el.addEventListener('dragstart', onDragStart);
+        return el;
+    }
+
+    // 拖曳邏輯
+    let draggedItem = null;
+    function onDragStart(e) { draggedItem = this; e.dataTransfer.effectAllowed = 'move'; setTimeout(() => this.style.opacity = '0.5', 0); }
+    function onDragOver(e) { e.preventDefault(); this.classList.add('drag-over'); e.dataTransfer.dropEffect = 'move'; }
+    function onDropSeat(e) {
+        e.preventDefault(); this.classList.remove('drag-over');
+        if (!draggedItem) return;
+        if (this === draggedItem.parentNode) { draggedItem.style.opacity = '1'; draggedItem = null; return; }
+        const existing = this.querySelector('.card');
+        if (existing) document.getElementById('waiting-area').appendChild(existing);
+        this.appendChild(draggedItem); draggedItem.style.opacity = '1'; draggedItem = null;
+    }
+    function onDropWaiting(e) {
+        e.preventDefault(); this.classList.remove('drag-over');
+        if (!draggedItem) return;
+        this.appendChild(draggedItem); draggedItem.style.opacity = '1'; draggedItem = null;
+    }
+    document.addEventListener('dragleave', (e) => {
+        if(e.target.classList && (e.target.classList.contains('seat-box') || e.target.id === 'waiting-area')) e.target.classList.remove('drag-over');
+    });
+
+</script>
+
+</body>
+</html>
