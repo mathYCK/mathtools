@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二進制翻牌進位模擬器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: #f0f4f8;
+            color: #2c3e50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .title {
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 2.5rem;
+            font-weight: 900;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 40px;
+            font-size: 1.2rem;
+        }
+
+        .decimal-display {
+            font-size: 5rem;
+            font-weight: bold;
+            background: #ffffff;
+            padding: 10px 60px;
+            border-radius: 15px;
+            border: 3px solid #bdc3c7;
+            margin-bottom: 50px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            min-width: 150px;
+            text-align: center;
+            color: #34495e;
+        }
+
+        /* 放置方塊的底座 */
+        .board-base {
+            display: flex;
+            align-items: center;
+            gap: 25px; /* 方塊之間的距離 */
+            background: #e2e6ea;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.1), 0 15px 25px rgba(0,0,0,0.1);
+            border-bottom: 8px solid #cbd0d5;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 貫穿方塊後方的「主傳動軸」 */
+        .board-base::before {
+            content: '';
+            position: absolute;
+            left: 30px; right: 30px;
+            height: 12px;
+            background: #95a5a6;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: -2; 
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .unit-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* 每個牌子背後負責「推動」左邊的隱藏連桿 */
+        .lever-behind {
+            position: absolute;
+            top: 50%;
+            left: -35px; /* 往左延伸的起點 */
+            width: 45px;
+            height: 12px;
+            background: transparent;
+            z-index: -1;
+            transform-origin: right center; /* 從右邊向左伸長 */
+            border-radius: 6px;
+        }
+
+        /* 當進位時，背後的桿子會亮起並向左推動 */
+        @keyframes pushAction {
+            0% { transform: scaleX(1); background: #95a5a6; }
+            30% { transform: scaleX(1.8); background: #f39c12; box-shadow: 0 0 15px #f39c12; }
+            100% { transform: scaleX(1); background: transparent; }
+        }
+        .lever-behind.active { animation: pushAction 0.4s ease-out; }
+
+        /* 3D 翻牌容器 */
+        .card-container {
+            width: 80px;
+            height: 110px;
+            perspective: 1000px;
+        }
+
+        /* 會旋轉的本體 */
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center; 
+        }
+
+        /* 卡片的正反面 */
+        .face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden; 
+            display: flex; justify-content: center; align-items: center;
+            font-size: 4rem; font-weight: bold;
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            user-select: none;
+            color: white;
+        }
+
+        .face.front { 
+            background: #e74c3c; 
+            transform: rotateX(0deg); 
+        }
+
+        .face.back { 
+            background: #2ecc71; 
+            transform: rotateX(180deg); 
+        }
+
+        .controls {
+            margin-top: 50px;
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            padding: 15px 50px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2980b9;
+            transition: 0.1s;
+        }
+        button:active { transform: translateY(6px); box-shadow: none; }
+        
+        #reset-btn { background: #95a5a6; box-shadow: 0 6px 0 #7f8c8d; }
+
+    </style>
+</head>
+<body>
+
+    <h1 class="title">二進制翻牌進位模擬器</h1>
+    <p class="subtitle">注意看牌子後方的連動桿，是如何把進位傳遞給下一個的！</p>
+    
+    <div class="decimal-display" id="decimal">0</div>
+
+    <div class="board-base">
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-5"></div>
+            <div class="card-container"><div class="card" id="b5"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+        
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-4"></div>
+            <div class="card-container"><div class="card" id="b4"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-3"></div>
+            <div class="card-container"><div class="card" id="b3"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-2"></div>
+            <div class="card-container"><div class="card" id="b2"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-1"></div>
+            <div class="card-container"><div class="card" id="b1"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+
+        <div class="unit-group">
+            <div class="lever-behind" id="lever-0"></div>
+            <div class="card-container"><div class="card" id="b0"><div class="face front">0</div><div class="face back">1</div></div></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="add-btn">加 1 (+1)</button>
+        <button id="reset-btn" onclick="location.reload()">歸零</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            let rotations = [0, 0, 0, 0, 0, 0]; 
+            let bits = [0, 0, 0, 0, 0, 0];
+
+            function updateDecimal() {
+                let total = bits.reduce((sum, val, i) => sum + (val * Math.pow(2, i)), 0);
+                document.getElementById('decimal').innerText = total;
+            }
+
+            function addOne(index) {
+                if (index >= 6) return;
+
+                const card = document.getElementById(`b${index}`);
+                if (!card) return;
+                
+                rotations[index] -= 180;
+                card.style.transform = `rotateX(${rotations[index]}deg)`;
+
+                if (bits[index] === 0) {
+                    // 0 變 1，停止進位
+                    bits[index] = 1;
+                    updateDecimal();
+                } else {
+                    // 1 變 0，發生進位
+                    bits[index] = 0;
+                    updateDecimal();
+
+                    // 關鍵修正：觸發「當前牌子(index)」後方的桿子
+                    setTimeout(() => {
+                        const lever = document.getElementById(`lever-${index}`);
+                        if (lever) {
+                            lever.classList.remove('active');
+                            void lever.offsetWidth; 
+                            lever.classList.add('active');
+                        }
+                        
+                        // 桿子戳出去後，稍微等一下下再讓左邊的牌開始翻
+                        setTimeout(() => {
+                            addOne(index + 1);
+                        }, 80); 
+                    }, 120); 
+                }
+            }
+
+            document.getElementById('add-btn').onclick = () => {
+                const btn = document.getElementById('add-btn');
+                btn.disabled = true;
+                addOne(0);
+                setTimeout(() => btn.disabled = false, 800);
+            };
+            
+            updateDecimal();
+        };
+    </script>
+</body>
+</html>
