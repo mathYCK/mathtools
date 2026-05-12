@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>消失的畢業驚喜｜數學密室逃脫</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --btn-bg: #0ea5e9;
+            --btn-hover: #0284c7;
+            --error: #ef4444;
+            --success: #22c55e;
+            --border-color: #475569;
+        }
+
+        html { font-size: 18px; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "微軟正黑體", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            user-select: none;
+            -webkit-touch-callout: none;
+            overflow-x: hidden;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 1000px;
+            margin-top: 30px; 
+            margin-bottom: 30px;
+            z-index: 10;
+        }
+
+        .level-card {
+            background-color: var(--card-bg);
+            padding: 50px 50px;
+            border-radius: 20px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            display: none;
+            animation: fadeIn 0.6s ease-out forwards;
+            border-top: 6px solid var(--accent);
+        }
+
+        .active { display: block; }
+
+        h2 { text-align: center; color: var(--accent); font-size: 2.5rem; margin-top: 0; margin-bottom: 30px; letter-spacing: 2px;}
+        h3 { font-size: 1.8rem; border-bottom: 3px dashed var(--border-color); padding-bottom: 15px; color: #fff; margin-bottom: 30px;}
+        p { font-size: 1.4rem; line-height: 1.9; color: #cbd5e1; margin-bottom: 25px; }
+        
+        .clue {
+            background-color: rgba(56, 189, 248, 0.1);
+            padding: 20px 25px; border-left: 6px solid var(--accent);
+            font-size: 1.3rem; color: #bae6fd; border-radius: 8px; margin-bottom: 30px;
+            font-style: italic; letter-spacing: 1px;
+        }
+
+        .input-group { display: flex; flex-direction: column; align-items: center; margin-top: 40px; }
+
+        input[type="number"], input[type="text"] {
+            width: 350px; padding: 20px; font-size: 1.8rem; text-align: center;
+            letter-spacing: 8px; border-radius: 12px; border: 3px solid var(--border-color);
+            background-color: #0f172a; color: #fff; outline: none; transition: 0.3s;
+            margin-bottom: 20px;
+        }
+        input[type="number"]:focus, input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);}
+
+        /* 雙輸入框 (分數專用) */
+        .fraction-group { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .fraction-group input { width: 120px; margin-bottom: 0; letter-spacing: 2px; }
+        .fraction-slash { font-size: 2.5rem; font-weight: bold; color: var(--accent); }
+
+        button {
+            padding: 18px 50px; font-size: 1.4rem; font-weight: bold;
+            cursor: pointer; background-color: var(--btn-bg); color: white;
+            border: none; border-radius: 12px; transition: 0.3s; letter-spacing: 3px;
+            -webkit-appearance: none;
+        }
+        button:hover { background-color: var(--btn-hover); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3);}
+        button:active { transform: translateY(-1px); }
+
+        .btn-secondary { background-color: var(--border-color); margin-top: 15px; font-size: 1.2rem; padding: 12px 30px;}
+        .btn-secondary:hover { background-color: #64748b; }
+
+        .msg { height: 30px; margin-top: 20px; font-size: 1.3rem; font-weight: bold; text-align: center; }
+        .error { color: var(--error); animation: shake 0.4s; }
+        .success { color: var(--success); }
+
+        /* 互動式座標圖畫布 CSS */
+        .coordinate-container {
+            width: 500px; height: 500px;
+            background-color: #0f172a; border: 3px solid var(--border-color);
+            margin: 30px auto; position: relative; border-radius: 10px;
+            background-image: linear-gradient(#1e293b 1px, transparent 1px), linear-gradient(90deg, #1e293b 1px, transparent 1px);
+            background-size: 25px 25px; /* 500 / 20 = 25 */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .point-canvas { display: flex; justify-content: center; margin-top: 25px; margin-bottom: 10px; }
+
+        .slider-group { display: flex; flex-direction: column; align-items: center; margin-bottom: 30px; width: 90%; margin-left: auto; margin-right: auto;}
+        .slider-row { display: flex; align-items: center; gap: 20px; width: 100%; margin: 15px 0; }
+        .slider-label { font-size: 1.3rem; color: var(--text-muted); width: 60px; text-align: right;}
+        input[type="range"] { flex-grow: 1; cursor: pointer; height: 15px; -webkit-appearance: none; background: #334155; border-radius: 10px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--accent); border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.5); transition: 0.2s;}
+        input[type="range"]::-webkit-slider-thumb:hover { background: #fff; transform: scale(1.1); }
+        .slider-val { width: 60px; font-weight: bold; color: var(--accent); font-size: 1.5rem; text-align: left;}
+
+        /* Desmos 大視窗 */
+        .desmos-container {
+            width: 100%; height: 600px;
+            border: 3px solid var(--border-color); border-radius: 12px; margin-top: 25px;
+            overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            user-select: auto; -webkit-touch-callout: default; pointer-events: auto;
+        }
+
+        /* 煙火畫布 */
+        #confettiCanvas {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 9999; display: none;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+
+    <!-- 慶祝煙火畫布 -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <div class="container">
+        
+        <!-- 前言 -->
+        <div id="intro" class="level-card active">
+            <h2>🕵️ 消失的畢業驚喜</h2>
+            <p>那天在走廊經過，無意間聽到導師們神色慌張地討論著：放在導師辦公室準備給班上的『畢業驚喜』竟然不見了！</p>
+            <p>雖然會考已經結束，但這份屬於全班的紀念絕對不能就這樣消失。你決定在假日偷偷潛回校園，循著微弱的線索，領回屬於自己的畢業禮物。</p>
+            <div class="input-group"><button onclick="nextLevel('intro', 'levelCard1')">推開校門，開始調查</button></div>
+        </div>
+
+        <!-- 關卡一：警衛室大門 -->
+        <div id="levelCard1" class="level-card">
+            <h3>關卡一：深夜的警衛室大門 — 密碼的節奏</h3>
+            <p>校門緊閉，假日的校園空無一人，只有警衛室旁的刷卡機隱約閃爍著紅光。你用紫外線燈往按鍵上一照，發現 <strong>1、2、4、8</strong> 這四個數字鍵上有明顯的螢光反應。</p>
+            <div class="clue">💭 「這密碼的節奏好像細胞分裂一樣倍數成長... 安全守則說要『溯源而上』，應該是把這些數字從大排到小吧？」</div>
+            <div class="input-group">
+                <input type="number" id="ans1" placeholder="輸入4碼數字">
+                <button onclick="verify('ans1', 'MTI0OA==', 'levelCard1', 'levelCard2')">解鎖大門</button>
+                <div id="msg-ans1" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡二：階差數列 -->
+        <div id="levelCard2" class="level-card">
+            <h3>關卡二：警衛室內的地下保險箱</h3>
+            <p>成功進入警衛室，地面上嵌著一個老舊的數字盤，上面刻著一串不完整的數列：</p>
+            <p style="text-align: center; font-size: 2rem; color: var(--accent); letter-spacing: 5px;"><strong>2 , 5 , 10 , 17 , 26 , ？ , 50</strong></p>
+            <div class="clue">💭 「觀察一下數字之間的差距... 分別增加了 3、5、7、9... 接下來會增加多少呢？只要算出規律就能找到『？』的密碼了！」</div>
+            <div class="input-group">
+                <input type="number" id="ans2" placeholder="輸入2碼數字">
+                <button onclick="verify('ans2', 'NzM=', 'levelCard2', 'levelCard3')">開啟保險箱</button>
+                <div id="msg-ans2" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡三：機率運算 (純機率題) -->
+        <div id="levelCard3" class="level-card">
+            <h3>關卡三：保險箱內的警報器</h3>
+            <p>保險箱開了，但警報器響起！面板顯示：「偵測到入侵。要關閉警報，必須解答以下問題：」</p>
+            <p style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; font-size: 1.4rem;">「如果將 <strong>1、2、4</strong> 這三個數字，隨機排成一個三位數（數字不可重複）。請問你『 <strong>一次就猜中密碼</strong> 』的機率是多少？」</p>
+            <div class="clue">💭 「這三個數字總共可以排成幾種組合呢？算出來的機率化成最簡分數後，填入下方的格子裡關閉警報！」</div>
+            
+            <div id="prob-display" style="display: none; background: #0f172a; padding: 20px; border-radius: 10px; text-align: left; font-size: 1.3rem; color: #bae6fd; margin-bottom: 20px; border: 2px solid var(--border-color);">
+                💡 <strong>線索筆記：</strong><br>
+                所有可能：124, 142, 214, 241, 412, 421 (共 6 種)。<br>
+                一次就猜中的情況只有 1 種。<br>
+                所以機率為 1/6。
+            </div>
+
+            <div class="input-group">
+                <button class="btn-secondary" onclick="document.getElementById('prob-display').style.display='block'">卡住了？點我看提示</button>
+                
+                <div class="fraction-group">
+                    <input type="number" id="ans3_num" placeholder="分子">
+                    <span class="fraction-slash">/</span>
+                    <input type="number" id="ans3_den" placeholder="分母">
+                </div>
+
+                <button onclick="verifyFraction('ans3_num', 'ans3_den', '1', '6', 'levelCard3', 'levelCard4')">關閉警報</button>
+                <div id="msg-ans3" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡四：導師辦公室門口 (質數) -->
+        <div id="levelCard4" class="level-card">
+            <h3>關卡四：導師辦公室的門 — 遺落的行事曆</h3>
+            <p>來到案發現場九導辦公室門口，門縫夾著一張 4 月行事曆。上面 <strong>2, 3, 5, 7, 11, 13, 17, 19</strong> 號都被老師用紅筆圈了起來。</p>
+            <div class="clue">💭 「老師圈起來的都是質數！行事曆提示說要找『畢業前夕』... 那應該是指 20 號之後被漏掉的質數，把它們連在一起輸入試試看！」</div>
+            <div class="input-group">
+                <input type="number" id="ans4" placeholder="輸入4碼數字">
+                <button onclick="verify('ans4', 'OTIzMg==', 'levelCard4', 'levelCard5')">開啟辦公室</button>
+                <div id="msg-ans4" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡五：質因數分解 -->
+        <div id="levelCard5" class="level-card">
+            <h3>關卡五：老師桌上的保險箱</h3>
+            <p>進入辦公室，老師桌上放著一個小型保險箱。密碼鎖旁貼著一張紙條，上面寫著一個巨大的數字：</p>
+            <p style="text-align: center; font-size: 2.5rem; color: var(--accent); letter-spacing: 8px;"><strong>1 0 0 1</strong></p>
+            <div class="clue">💭 「紙條上寫：密碼是由這數字的所有『質因數』組成... 我得趕快把 1001 做質因數分解，然後由小到大連在一起輸入！」</div>
+            <div class="input-group">
+                <input type="number" id="ans5" placeholder="輸入5碼數字">
+                <button onclick="verify('ans5', 'MzExMTc=', 'levelCard5', 'levelCard6')">解鎖保險箱</button>
+                <div id="msg-ans5" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡六：教室置物櫃 (LCM) -->
+        <div id="levelCard6" class="level-card">
+            <h3>關卡六：教室後方的置物櫃</h3>
+            <p>保險箱裡有一張紙條：「怕被偷，我把驚喜藏在三年級教室的學生專屬置物櫃裡了。當然，因為它位置比較低才方便拿取。」</p>
+            <p>來到教室，置物櫃區的其中一個櫃子被鎖上了。鎖上貼著提示：「這個櫃子的號碼，是 <strong>8 和 12 的最小公倍數</strong>。」</p>
+            <div class="clue">💭 「8 和 12 的最小公倍數... 只要用短除法算出來，就能找到正確的置物櫃號碼了！」</div>
+            <div class="input-group">
+                <input type="number" id="ans6" placeholder="輸入2碼數字">
+                <button onclick="verify('ans6', 'NDI=', 'levelCard6', 'levelCard7')">打開置物櫃</button>
+                <div id="msg-ans6" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡七：經典鏡像題 -->
+        <div id="levelCard7" class="level-card">
+            <h3>關卡七：辦公桌上的玻璃墊</h3>
+            <p>置物櫃裡沒有驚喜，只有一張字條，上面的符號像是被直直切掉了一半。</p>
+            <p>這三個殘缺符號的「右半邊」看起來像是：<strong>E、I、己</strong>。</p>
+            <div class="clue">💭 「如果拿鏡子貼在符號左邊，利用線對稱補齊左半邊... 它們就會變成真實的數字！把這 3 個數字照順序輸入就對了。」</div>
+            <div class="input-group">
+                <input type="number" id="ans7" placeholder="輸入3碼數字">
+                <button onclick="verify('ans7', 'NTEz', 'levelCard7', 'levelCard8')">記錄線索</button>
+                <div id="msg-ans7" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡八：座標對稱變換 (相乘) -->
+        <div id="levelCard8" class="level-card">
+            <h3>關卡八：黑板上的空間跳躍</h3>
+            <p>接下來，黑板上出現了一個座標變換謎題：</p>
+            <p style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; font-size: 1.4rem;">「起點 P 座標為 <strong>(-2, 7)</strong>。嫌犯先將 P 對 <strong>Y 軸</strong> 作對稱變換得到 Q 點，再將 Q 點往 <strong>右平移 3 單位、向下平移 2 單位</strong>，得到終點 R。」</p>
+            <div class="clue">💭 「先算出終點 R 的 X 和 Y 座標... 這次的密碼規則是將 X 座標與 Y 座標『相乘』！乘出來的積就是答案。」</div>
+            <div class="input-group">
+                <input type="number" id="ans8" placeholder="輸入 X 與 Y 的乘積">
+                <button onclick="verify('ans8', 'NTI=', 'levelCard8', 'levelCard9')">輸入乘積</button>
+                <div id="msg-ans8" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡九：正方形陣眼 (互動拉桿) -->
+        <div id="levelCard9" class="level-card">
+            <h3>關卡九：拼湊完美的圖騰 — 消失的第四碎片</h3>
+            <p>留言寫著：「只有找到『第四個地點 D』，並讓它們組成最完美的形狀，通往終點的門才會開啟。」</p>
+            <p>地圖對齊後，發現前三個角落點是：操場 A(4, 4)、想想廳 B(4, 16)、點心部 C(16, 4)。</p>
+            <div class="clue">💭 「要組成完美的正方形，第四個點 D 到底在哪裡？調整拉桿把它定位出來！」</div>
+            
+            <div class="coordinate-container">
+                <div class="point" style="width: 16px; height: 16px; background-color: #94a3b8; border-radius: 50%; position: absolute; left: 20%; bottom: 20%; transform: translate(-50%, 50%);"></div> <!-- A(4,4) -->
+                <div class="point" style="width: 16px; height: 16px; background-color: #94a3b8; border-radius: 50%; position: absolute; left: 20%; bottom: 80%; transform: translate(-50%, 50%);"></div> <!-- B(4,16) -->
+                <div class="point" style="width: 16px; height: 16px; background-color: #94a3b8; border-radius: 50%; position: absolute; left: 80%; bottom: 20%; transform: translate(-50%, 50%);"></div> <!-- C(16,4) -->
+                <div id="targetDot9" style="width: 20px; height: 20px; background-color: var(--error); border-radius: 50%; position: absolute; left: 50%; bottom: 50%; transform: translate(-50%, 50%); transition: 0.1s ease-out; box-shadow: 0 0 15px var(--error); z-index: 10;"></div>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-row">
+                    <span class="slider-label">X 軸：</span>
+                    <input type="range" id="sliderX9" min="0" max="20" value="10" oninput="updateSliderMap(9)">
+                    <span class="slider-val" id="valX9">10</span>
+                </div>
+                <div class="slider-row">
+                    <span class="slider-label">Y 軸：</span>
+                    <input type="range" id="sliderY9" min="0" max="20" value="10" oninput="updateSliderMap(9)">
+                    <span class="slider-val" id="valY9">10</span>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <button onclick="verifySliderSquare()">確認陣眼座標</button>
+                <div id="msg-ans9" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡十：平行四邊形尋找 (Canvas點擊) -->
+        <div id="levelCard10" class="level-card">
+            <h3>關卡十：圖書館的平行四邊形結界</h3>
+            <p>通道開啟，眼前是一張殘缺平面圖，上面記錄了三個座標：A(7, 7)、B(12, 17)、C(17, 12)。</p>
+            <div class="clue">💭 「因為沒有規定連接順序，所以可以畫出三個不同方向的平行四邊形！我得在下方的 0~25 畫布上，把這【3個】可能的第 4 點都點出來！」</div>
+            
+            <div class="point-canvas">
+                <canvas id="paraCanvas" width="500" height="500" style="border: 3px solid var(--border-color); border-radius: 10px; background-color: #0f172a; cursor: crosshair; box-shadow: 0 5px 15px rgba(0,0,0,0.3);"></canvas>
+            </div>
+            
+            <div id="msg-para" class="msg"></div>
+        </div>
+
+        <!-- 關卡十一：費氏數列 -->
+        <div id="levelCard11" class="level-card">
+            <h3>關卡十一：圖書館的達文西書籤</h3>
+            <p>解開結界進入密室，你在書架上找到一本《達文西密碼》，書後的借閱卡蓋著幾何老師的借閱日期，隱藏著一個著名的規律：</p>
+            <p style="text-align: center; font-size: 2rem; color: var(--accent); letter-spacing: 5px;"><strong>1, 1, 2, 3, 5, 8, 13, 21, ？</strong></p>
+            <div class="clue">💭 「前兩個數字加起來等於下一個數字... 這不就是費氏數列嗎？下一次的歸還日期會是多少呢？」</div>
+            <div class="input-group">
+                <input type="number" id="ans11" placeholder="輸入2碼數字">
+                <button onclick="verify('ans11', 'NDM=', 'levelCard11', 'levelCard12')">確定歸還日</button>
+                <div id="msg-ans11" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡十二：蛋包飯比例 -->
+        <div id="levelCard12" class="level-card">
+            <h3>關卡十二：家政教室的日式料理</h3>
+            <p>書籤是一張日式料理食譜：「完美比例：4 人份需要使用 600 克的白飯。」</p>
+            <p>筆記旁寫著嫌犯的問題：「如果要準備給全班 30 人吃，需要多少克的白飯呢？」</p>
+            <div class="clue">💭 「先算出 1 人份要多少克，再乘上 30 人，就能算出精確的飯量了！」</div>
+            <div class="input-group">
+                <input type="number" id="ans12" placeholder="輸入克數數字">
+                <button onclick="verify('ans12', 'MDA1NA==', 'levelCard12', 'levelCard13')">完成備料</button>
+                <div id="msg-ans12" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡十三：校長室數字謎語 -->
+        <div id="levelCard13" class="level-card">
+            <h3>關卡十三：校長室門口的數字謎語</h3>
+            <p>終於來到校長室門前，掛著一塊電子面板，顯示著校長的邏輯謎語：<br>「我是個三位數。我的十位數是百位數的兩倍，我的個位數是百位與十位的總和。而且，我還是 9 的倍數。」</p>
+            <div class="clue">💭 「百位的兩倍是十位，兩者相加是個位... 而且還要符合 9 的倍數。慢慢湊看看，一定只有一組解！」</div>
+            <div class="input-group">
+                <input type="number" id="ans13" placeholder="輸入3碼數字">
+                <button onclick="verify('ans13', 'OTYz', 'levelCard13', 'levelCard14')">解開謎語</button>
+                <div id="msg-ans13" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡十四：拋物線 (Desmos大視窗+座標輸入) -->
+        <div id="levelCard14" class="level-card">
+            <h3>關卡十四：體育館的拋物線軌跡鎖</h3>
+            <p>指示帶你來到體育館的平板。嫌犯在平板旁寫下一行方程式：<br><strong>籃球飛行的軌跡：y = -x² + 4x + 12</strong></p>
+            <div class="clue">💭 「只要在下方的計算機輸入這行方程式，圖形最高點的座標就是密碼！(把 X 和 Y 連在一起輸入)」</div>
+            
+            <div class="desmos-container">
+                <!-- 移除了 ?embed 讓 iPad 上能顯示完整的計算機輸入列 -->
+                <iframe src="https://www.desmos.com/calculator" width="100%" height="100%" frameborder=0></iframe>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="ans14" placeholder="例如: 123">
+                <button onclick="verifyParabolaVertex()">解鎖平板</button>
+                <div id="msg-ans14" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 關卡十五：完美人的終極鎖 -->
+        <div id="levelCard15" class="level-card">
+            <h3>最終關卡：完美人的終極鎖</h3>
+            <p>進入校長室最深處，一個巨大的保險箱放在桌上。嫌犯自稱：「我是世界上最完美的人！數學裡，自身真因數之和等於自身的數稱為完美數。輸入『前兩個』完美數組成的四碼代碼。」</p>
+            <div class="clue">💭 「完美數... 前兩個完美數分別是 6 和 28，組合成四碼就是最後的鑰匙了！」</div>
+            <div class="input-group">
+                <input type="number" id="ans15" placeholder="輸入4碼數字">
+                <button onclick="verify('ans15', 'ODI2MA==', 'levelCard15', 'finish')">打開畢業驚喜</button>
+                <div id="msg-ans15" class="msg error"></div>
+            </div>
+        </div>
+
+        <!-- 結局 -->
+        <div id="finish" class="level-card">
+            <h2>🎉 破解成功！畢業快樂！🎓</h2>
+            <p>保險箱緩緩打開，裡面裝滿了各班專屬的客製化紀念鑰匙圈，以及一張大卡片：</p>
+            <p>「其實，拿走驚喜的『完美嫌犯』，就是各班的導師們！這不僅是一場智力的考驗，也是帶你們重新走過三年校園點滴的旅程。」</p>
+            <p style="color: var(--accent); font-weight: bold; text-align: center; font-size: 1.8rem; margin-top: 40px;">恭喜你們，順利畢業了！永遠保留這份探究的心！</p>
+            <p style="text-align: center; font-size: 1.1rem; color: var(--text-muted);">請截圖此畫面，向導師領取實體的驚喜禮物！</p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 核心防護 ---
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || (e.ctrlKey && e.keyCode == 85)) return false;
+        }
+
+        // --- 煙火動畫邏輯 ---
+        function fireConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 100,
+                    vx: (Math.random() - 0.5) * 25,
+                    vy: (Math.random() - 1) * 20 - 5,
+                    size: Math.random() * 12 + 6,
+                    color: ['#38bdf8', '#22c55e', '#ef4444', '#f59e0b', '#a855f7', '#ffffff'][Math.floor(Math.random()*6)],
+                    rotation: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 10
+                });
+            }
+            
+            function animate() {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                let active = false;
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.4; // 重力
+                    p.rotation += p.rotSpeed;
+                    if(p.y < canvas.height) active = true;
+                    
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                });
+                if(active) requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // --- 通用驗證邏輯 ---
+        function verify(inputId, hashObj, currentId, nextId) {
+            const userInput = document.getElementById(inputId).value.trim();
+            const msgDiv = document.getElementById('msg-' + inputId);
+            const inputField = document.getElementById(inputId);
+
+            if(userInput === "") {
+                msgDiv.innerText = "請輸入密碼！";
+                msgDiv.className = "msg error";
+                return;
+            }
+
+            const reversedInput = userInput.split('').reverse().join('');
+            const encodedInput = btoa(reversedInput);
+
+            if (encodedInput === hashObj) {
+                msgDiv.className = "msg success";
+                msgDiv.innerText = "解鎖成功！";
+                if (navigator.vibrate) navigator.vibrate(100); 
+                
+                // 如果是最後一關，發射煙火！
+                if(nextId === 'finish') fireConfetti();
+
+                setTimeout(() => {
+                    nextLevel(currentId, nextId);
+                }, 800); 
+            } else {
+                msgDiv.className = "msg error";
+                msgDiv.innerText = "密碼錯誤，請再試一次！";
+                inputField.value = "";
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
+                setTimeout(() => { msgDiv.innerText = ""; }, 2000);
+            }
+        }
+        
+        // --- 特殊驗證：分數題 (關卡三) ---
+        function verifyFraction(numId, denId, correctNum, correctDen, currentId, nextId) {
+            const num = document.getElementById(numId).value.trim();
+            const den = document.getElementById(denId).value.trim();
+            const msgDiv = document.getElementById('msg-ans3');
+            
+            if(num === "" || den === "") {
+                msgDiv.innerText = "請填寫完整的分子與分母！";
+                msgDiv.className = "msg error";
+                return;
+            }
+            
+            if(num === correctNum && den === correctDen) {
+                msgDiv.className = "msg success";
+                msgDiv.innerText = "解鎖成功！";
+                if (navigator.vibrate) navigator.vibrate(100); 
+                setTimeout(() => { nextLevel(currentId, nextId); }, 800);
+            } else {
+                msgDiv.className = "msg error";
+                msgDiv.innerText = "機率計算錯誤或未化成最簡分數，請再試一次！";
+                document.getElementById(numId).value = "";
+                document.getElementById(denId).value = "";
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
+                setTimeout(() => { msgDiv.innerText = ""; }, 2000);
+            }
+        }
+
+        function nextLevel(currentId, nextId) {
+            document.getElementById(currentId).classList.remove('active');
+            document.getElementById(nextId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- 關卡九：正方形互動拉桿邏輯 ---
+        function updateSliderMap(levelNum) {
+            const x = document.getElementById('sliderX' + levelNum).value;
+            const y = document.getElementById('sliderY' + levelNum).value;
+            document.getElementById('valX' + levelNum).innerText = x;
+            document.getElementById('valY' + levelNum).innerText = y;
+            
+            const leftPercent = (x / 20) * 100;
+            const bottomPercent = (y / 20) * 100;
+            
+            const dot = document.getElementById('targetDot' + levelNum);
+            dot.style.left = leftPercent + '%';
+            dot.style.bottom = bottomPercent + '%';
+        }
+
+        function verifySliderSquare() {
+            const x = document.getElementById('sliderX9').value;
+            const y = document.getElementById('sliderY9').value;
+            const msgDiv = document.getElementById('msg-ans9');
+
+            if (x == 16 && y == 16) {
+                msgDiv.className = "msg success";
+                msgDiv.innerText = "陣眼定位成功！通道開啟！";
+                if (navigator.vibrate) navigator.vibrate(100); 
+                setTimeout(() => { nextLevel('levelCard9', 'levelCard10'); }, 800);
+            } else {
+                msgDiv.className = "msg error";
+                msgDiv.innerText = "位置錯誤，形狀不是完美的正方形！";
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
+                setTimeout(() => { msgDiv.innerText = ""; }, 2000);
+            }
+        }
+
+        // --- 關卡十：平行四邊形 3 點尋找邏輯 ---
+        const pCanvas = document.getElementById('paraCanvas');
+        const pCtx = pCanvas.getContext('2d');
+        const pScale = pCanvas.width / 25; // 網格擴充到 0~25
+        
+        // 將原點平移，讓答案遠離邊緣：A(7,7), B(12,17), C(17,12)
+        // 目標答案為 (2,12), (12,2), (22,22)
+        const targets = [
+            { x: 2, y: 12, found: false },
+            { x: 12, y: 2, found: false },
+            { x: 22, y: 22, found: false }
+        ];
+
+        function drawParaGrid() {
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            pCtx.strokeStyle = '#1e293b'; pCtx.lineWidth = 1;
+            for(let i=0; i<=25; i++) { 
+                pCtx.beginPath(); pCtx.moveTo(i*pScale, 0); pCtx.lineTo(i*pScale, pCanvas.height); pCtx.stroke(); 
+                pCtx.beginPath(); pCtx.moveTo(0, i*pScale); pCtx.lineTo(pCanvas.width, i*pScale); pCtx.stroke(); 
+            }
+            
+            const fixedPoints = [{x:7, y:7}, {x:12, y:17}, {x:17, y:12}];
+            pCtx.fillStyle = '#94a3b8'; 
+            fixedPoints.forEach(p => {
+                pCtx.beginPath(); pCtx.arc(p.x * pScale, pCanvas.height - p.y * pScale, 8, 0, Math.PI*2); pCtx.fill();
+            });
+
+            pCtx.fillStyle = '#22c55e'; 
+            targets.forEach(t => {
+                if(t.found) {
+                    pCtx.beginPath(); pCtx.arc(t.x * pScale, pCanvas.height - t.y * pScale, 10, 0, Math.PI*2); pCtx.fill();
+                }
+            });
+        }
+        drawParaGrid();
+
+        pCanvas.addEventListener('click', function(event) {
+            const rect = pCanvas.getBoundingClientRect();
+            const clickX = (event.clientX - rect.left) * (pCanvas.width / rect.width);
+            const clickY = (event.clientY - rect.top) * (pCanvas.height / rect.height);
+            const msgPara = document.getElementById('msg-para');
+            let hit = false;
+
+            targets.forEach(t => {
+                if(!t.found) {
+                    const targetPX = t.x * pScale;
+                    const targetPY = pCanvas.height - (t.y * pScale); 
+                    const dist = Math.sqrt(Math.pow(clickX - targetPX, 2) + Math.pow(clickY - targetPY, 2));
+                    
+                    if (dist <= 25) { 
+                        t.found = true; hit = true;
+                    }
+                }
+            });
+
+            if (hit) {
+                drawParaGrid();
+                const foundCount = targets.filter(t => t.found).length;
+                if (navigator.vibrate) navigator.vibrate(80); 
+
+                if (foundCount === 3) {
+                    msgPara.className = "msg success";
+                    msgPara.innerText = "太厲害了！你找到了所有可能的入口陣眼！";
+                    setTimeout(() => { nextLevel('levelCard10', 'levelCard11'); }, 1500);
+                } else {
+                    msgPara.className = "msg success";
+                    msgPara.innerText = `正確！已找到 ${foundCount} / 3 個位置。`;
+                }
+            } else {
+                msgPara.className = "msg error";
+                msgPara.innerText = "座標錯誤，這裡無法構成平行四邊形！";
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
+                setTimeout(() => { 
+                    const currentFound = targets.filter(t => t.found).length;
+                    if(currentFound < 3) msgPara.innerText = `加油，目前找到 ${currentFound} / 3 個位置。`; 
+                }, 1500);
+            }
+        });
+
+        // --- 關卡十四：拋物線驗證 ---
+        function verifyParabolaVertex() {
+            const userInput = document.getElementById('ans14').value.trim();
+            const msgDiv = document.getElementById('msg-ans14');
+            
+            // y = -x^2 + 4x + 12 的頂點為 (2, 16) -> 216 -> 612 -> NjEy
+            const reversedAns = "216".split('').reverse().join(''); 
+            const hashAns = btoa(reversedAns); 
+
+            if(userInput === "") { msgDiv.innerText = "請輸入座標連寫！"; return; }
+            const reversedInput = userInput.split('').reverse().join('');
+            const encodedInput = btoa(reversedInput);
+
+            if (encodedInput === hashAns) {
+                msgDiv.className = "msg success"; msgDiv.innerText = "解鎖成功！線索指向校長室！";
+                if (navigator.vibrate) navigator.vibrate(100); 
+                setTimeout(() => { nextLevel('levelCard14', 'levelCard15'); }, 1200);
+            } else {
+                msgDiv.className = "msg error"; msgDiv.innerText = "密碼錯誤，請點擊圖形確認最高點！";
+                document.getElementById('ans14').value = "";
+                if (navigator.vibrate) navigator.vibrate([50, 50, 50]); 
+                setTimeout(() => { msgDiv.innerText = ""; }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
