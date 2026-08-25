@@ -1,1 +1,291 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>算幾不等式・半圓證明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#f5f7fb;
+    --panel:#ffffff;
+    --ink:#1c2431;
+    --muted:#5a6676;
+    --hair:#e2e7f0;
+    --amber:#f6c453;
+    --amber-fill:#fdeec6;
+    --blue:#5b9bf0;
+    --blue-fill:#d6e6fd;
+    --rose:#d6447a;
+    --teal:#0d9488;
+    --arc:#2b3648;
+    --shadow:0 1px 2px rgba(20,30,50,.05),0 8px 30px rgba(20,30,50,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f141b;
+      --panel:#161d27;
+      --ink:#e8edf5;
+      --muted:#9aa7b8;
+      --hair:#28323f;
+      --amber:#e7b34a;
+      --amber-fill:#3a3421;
+      --blue:#5b9bf0;
+      --blue-fill:#1f3050;
+      --rose:#f06498;
+      --teal:#2dd4bf;
+      --arc:#c3cdda;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f141b;
+    --panel:#161d27;
+    --ink:#e8edf5;
+    --muted:#9aa7b8;
+    --hair:#28323f;
+    --amber:#e7b34a;
+    --amber-fill:#3a3421;
+    --blue:#5b9bf0;
+    --blue-fill:#1f3050;
+    --rose:#f06498;
+    --teal:#2dd4bf;
+    --arc:#c3cdda;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans TC",system-ui,sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:22px 18px 40px}
+  header{margin-bottom:14px}
+  h1{
+    font-family:"Noto Serif TC",serif;font-weight:700;
+    font-size:clamp(20px,4.5vw,26px);margin:0 0 4px;letter-spacing:.5px;
+  }
+  .sub{color:var(--muted);font-size:14px;margin:0}
+  .card{
+    background:var(--panel);border:1px solid var(--hair);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .stage{padding:6px 6px 0}
+  svg{display:block;width:100%;height:auto;touch-action:none}
+  .grab{cursor:grab}
+  .grab:active{cursor:grabbing}
+  .readout{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    flex-wrap:wrap;padding:16px 18px 6px;
+  }
+  .term{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px}
+  .term .lbl{font-size:12px;color:var(--muted);letter-spacing:.4px}
+  .term .val{
+    font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+    font-size:22px;font-weight:600;
+  }
+  .term.mean .val{color:var(--teal)}
+  .term.geo .val{color:var(--rose)}
+  .rel{
+    font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:600;
+    color:var(--ink);width:34px;text-align:center;
+  }
+  .rel.eq{color:var(--teal)}
+  .status{
+    text-align:center;font-size:13px;color:var(--muted);
+    padding:0 18px 14px;min-height:20px;
+  }
+  .status.eq{color:var(--teal);font-weight:500}
+  .controls{border-top:1px solid var(--hair);padding:16px 18px 18px;display:grid;gap:14px}
+  .row{display:grid;grid-template-columns:78px 1fr 58px;align-items:center;gap:12px}
+  .row .name{font-size:14px;font-weight:500}
+  .row .name .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .row .num{
+    font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+    font-size:14px;text-align:right;color:var(--muted);
+  }
+  input[type=range]{width:100%;accent-color:var(--teal);height:22px;cursor:pointer}
+  .hint{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .hint svg{width:15px;height:15px}
+  .reset{
+    justify-self:start;border:1px solid var(--hair);background:transparent;color:var(--muted);
+    font-family:inherit;font-size:13px;padding:6px 14px;border-radius:9px;cursor:pointer;
+  }
+  .reset:hover{color:var(--ink);border-color:var(--muted)}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+  .proof{margin-top:18px;background:var(--panel);border:1px solid var(--hair);
+    border-radius:16px;box-shadow:var(--shadow);padding:18px 20px}
+  .proof h2{font-family:"Noto Serif TC",serif;font-size:16px;margin:0 0 8px}
+  .proof p{font-size:14px;margin:0 0 8px;color:var(--muted)}
+  .proof b{color:var(--ink);font-weight:500}
+  .proof .m{font-family:"IBM Plex Mono",monospace;font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>算幾不等式 · 半圓證明</h1>
+    <p class="sub">拖曳 <b>C 點</b>,或調整下方 a、b 滑桿,觀察 (a+b)/2 與 √(ab) 的關係。</p>
+  </header>
 
+  <div class="card">
+    <div class="stage">
+      <svg id="fig" viewBox="0 0 600 358" role="img" aria-label="半圓上的算幾不等式動態圖">
+        <g id="regions"></g>
+        <path id="arc" fill="none" stroke="var(--arc)" stroke-width="2.5"></path>
+        <line id="diam" stroke="var(--arc)" stroke-width="2.5"></line>
+        <line id="radius" stroke="var(--teal)" stroke-width="3.5" stroke-linecap="round"></line>
+        <line id="alt" stroke="var(--rose)" stroke-width="3.5" stroke-linecap="round"></line>
+        <path id="rightangle" fill="none" stroke="var(--muted)" stroke-width="1.6"></path>
+        <circle id="ptA" r="3.5" fill="var(--arc)"></circle>
+        <circle id="ptB" r="3.5" fill="var(--arc)"></circle>
+        <circle id="ptO" r="3" fill="var(--muted)"></circle>
+        <circle id="ptD" r="4" fill="var(--rose)"></circle>
+        <g id="handleC" class="grab" tabindex="0" role="slider" aria-label="C 點位置"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+          <circle id="ptChit" r="18" fill="transparent"></circle>
+          <circle id="ptC" r="7" fill="var(--panel)" stroke="var(--arc)" stroke-width="2.5"></circle>
+          <circle r="2.5" fill="var(--arc)" id="ptCdot"></circle>
+        </g>
+        <text id="lblA" font-size="15" font-family="Noto Serif TC,serif" fill="var(--ink)">A</text>
+        <text id="lblB" font-size="15" font-family="Noto Serif TC,serif" fill="var(--ink)">B</text>
+        <text id="lblC" font-size="15" font-family="Noto Serif TC,serif" fill="var(--ink)">C</text>
+        <text id="lblD" font-size="15" font-family="Noto Serif TC,serif" fill="var(--rose)">D</text>
+        <text id="lblO" font-size="13" font-family="Noto Serif TC,serif" fill="var(--muted)">O</text>
+        <text id="lbla" font-size="15" text-anchor="middle" font-family="IBM Plex Mono,monospace" fill="#b3892a" font-weight="600">a</text>
+        <text id="lblb" font-size="15" text-anchor="middle" font-family="IBM Plex Mono,monospace" fill="#3b7fd6" font-weight="600">b</text>
+        <text id="lblAlt" font-size="13.5" text-anchor="end" font-family="IBM Plex Mono,monospace" fill="var(--rose)" font-weight="600">√(ab)</text>
+        <text id="lblRad" font-size="13.5" font-family="IBM Plex Mono,monospace" fill="var(--teal)" font-weight="600">(a+b)/2</text>
+      </svg>
+    </div>
+
+    <div class="readout">
+      <div class="term mean">
+        <span class="lbl">算術平均 (a+b)/2</span>
+        <span class="val" id="vMean">5.00</span>
+      </div>
+      <div class="rel" id="rel">≥</div>
+      <div class="term geo">
+        <span class="lbl">幾何平均 √(ab)</span>
+        <span class="val" id="vGeo">5.00</span>
+      </div>
+    </div>
+    <div class="status" id="status">半徑(算術平均)永遠 ≥ 高(幾何平均)</div>
+
+    <div class="controls">
+      <div class="row">
+        <span class="name"><span class="dot" style="background:var(--amber)"></span>a</span>
+        <input type="range" id="sa" min="0.5" max="10" step="0.1" value="7" aria-label="a 的值">
+        <span class="num" id="na">7.0</span>
+      </div>
+      <div class="row">
+        <span class="name"><span class="dot" style="background:var(--blue)"></span>b</span>
+        <input type="range" id="sb" min="0.5" max="10" step="0.1" value="3" aria-label="b 的值">
+        <span class="num" id="nb">3.0</span>
+      </div>
+      <div class="hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h13M8 12l3-3M8 12l3 3M3 5v14"></path></svg>
+        直接在圖上拖曳 <b style="color:var(--ink)">&nbsp;C&nbsp;</b> 點,可在 a+b 不變下改變分配。
+      </div>
+      <button class="reset" id="reset">重設 (a = b)</button>
+    </div>
+  </div>
+
+  <div class="proof">
+    <h2>為什麼成立？</h2>
+    <p>以 AB 為直徑作半圓,C 在 AB 上,<b>AC = a</b>、<b>CB = b</b>。過 C 作垂線交半圓於 D。</p>
+    <p>因為 △ACD ∼ △DCB(半圓內的直角),得 <span class="m">CD / AC = CB / CD</span>,所以 <b style="color:var(--rose)">CD = √(a·b)</b>——這是<b>高</b>,也就是幾何平均。</p>
+    <p>而半圓<b>半徑</b> OD = <b style="color:var(--teal)">(a+b)/2</b>,是固定的算術平均。在直角三角形 OCD 中,斜邊 OD 永遠不短於直角邊 CD,故 <span class="m">(a+b)/2 ≥ √(ab)</span>,當且僅當 C 落在圓心 O(即 <b>a = b</b>)時取等號。</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var A_X=70, B_X=530, BASE_Y=300, DRAW_W=B_X-A_X, R_PX=DRAW_W/2, O_X=A_X+R_PX;
+  var state={a:7,b:3};
+  var svg=document.getElementById('fig');
+  var el=function(id){return document.getElementById(id);};
+  function fmt(x){return (Math.round(x*100)/100).toFixed(2);}
+
+  function render(){
+    var a=state.a, b=state.b, T=a+b;
+    var scale=DRAW_W/T;
+    var Cx=A_X + a*scale;
+    var alt=Math.sqrt(a*b)*scale;
+    var Dy=BASE_Y-alt;
+    var mean=T/2, geo=Math.sqrt(a*b);
+    var equal=Math.abs(a-b)<0.06;
+
+    el('arc').setAttribute('d','M '+A_X+' '+BASE_Y+' A '+R_PX+' '+R_PX+' 0 0 1 '+B_X+' '+BASE_Y);
+    var d=el('diam'); d.setAttribute('x1',A_X);d.setAttribute('y1',BASE_Y);d.setAttribute('x2',B_X);d.setAttribute('y2',BASE_Y);
+
+    el('regions').innerHTML=
+      '<polygon points="'+A_X+','+BASE_Y+' '+Cx+','+BASE_Y+' '+Cx+','+Dy+'" fill="var(--amber-fill)" stroke="var(--amber)" stroke-width="1.2"/>'+
+      '<polygon points="'+Cx+','+BASE_Y+' '+B_X+','+BASE_Y+' '+Cx+','+Dy+'" fill="var(--blue-fill)" stroke="var(--blue)" stroke-width="1.2"/>';
+
+    var rad=el('radius'); rad.setAttribute('x1',O_X);rad.setAttribute('y1',BASE_Y);rad.setAttribute('x2',Cx);rad.setAttribute('y2',Dy);
+    var al=el('alt'); al.setAttribute('x1',Cx);al.setAttribute('y1',BASE_Y);al.setAttribute('x2',Cx);al.setAttribute('y2',Dy);
+
+    var s=9, dir=(Cx<O_X)?1:-1;
+    el('rightangle').setAttribute('d','M '+(Cx)+' '+(BASE_Y-s)+' L '+(Cx+dir*s)+' '+(BASE_Y-s)+' L '+(Cx+dir*s)+' '+(BASE_Y));
+
+    el('ptA').setAttribute('cx',A_X);el('ptA').setAttribute('cy',BASE_Y);
+    el('ptB').setAttribute('cx',B_X);el('ptB').setAttribute('cy',BASE_Y);
+    el('ptO').setAttribute('cx',O_X);el('ptO').setAttribute('cy',BASE_Y);
+    el('ptD').setAttribute('cx',Cx);el('ptD').setAttribute('cy',Dy);
+    el('ptC').setAttribute('cx',Cx);el('ptC').setAttribute('cy',BASE_Y);
+    el('ptChit').setAttribute('cx',Cx);el('ptChit').setAttribute('cy',BASE_Y);
+    el('ptCdot').setAttribute('cx',Cx);el('ptCdot').setAttribute('cy',BASE_Y);
+
+    place('lblA',A_X-6,BASE_Y+20); place('lblB',B_X+2,BASE_Y+20);
+    place('lblC',Cx-4,BASE_Y+20); place('lblD',Cx-14,Dy-8);
+    place('lblO',O_X-3,BASE_Y+20);
+    place('lbla',(A_X+Cx)/2,BASE_Y+20);
+    place('lblb',(Cx+B_X)/2,BASE_Y+20);
+    place('lblAlt',Cx-8,(BASE_Y+Dy)/2+4);
+    place('lblRad',(O_X+Cx)/2+4,(BASE_Y+Dy)/2-4);
+
+    el('vMean').textContent=fmt(mean);
+    el('vGeo').textContent=fmt(geo);
+    var rel=el('rel'), st=el('status');
+    if(equal){ rel.textContent='='; rel.classList.add('eq'); st.textContent='a = b,取到等號 — 高剛好等於半徑'; st.classList.add('eq'); }
+    else { rel.textContent='≥'; rel.classList.remove('eq'); st.textContent='半徑(算術平均)永遠 ≥ 高(幾何平均)'; st.classList.remove('eq'); }
+
+    el('sa').value=a; el('sb').value=b;
+    el('na').textContent=a.toFixed(1); el('nb').textContent=b.toFixed(1);
+    el('handleC').setAttribute('aria-valuenow',Math.round(a/T*100));
+  }
+  function place(id,x,y){var t=el(id);t.setAttribute('x',x);t.setAttribute('y',y);}
+
+  el('sa').addEventListener('input',function(){state.a=parseFloat(this.value);render();});
+  el('sb').addEventListener('input',function(){state.b=parseFloat(this.value);render();});
+  el('reset').addEventListener('click',function(){var m=(state.a+state.b)/2;state.a=m;state.b=m;render();});
+
+  function clientToVBx(clientX){
+    var r=svg.getBoundingClientRect();
+    return (clientX-r.left)/r.width*600;
+  }
+  function setCfromX(vbx){
+    var T=state.a+state.b, scale=DRAW_W/T;
+    var a=(vbx-A_X)/scale;
+    a=Math.max(0.3,Math.min(T-0.3,a));
+    state.a=a; state.b=T-a; render();
+  }
+  var handle=el('handleC'), dragging=false;
+  handle.addEventListener('pointerdown',function(e){dragging=true;handle.setPointerCapture(e.pointerId);setCfromX(clientToVBx(e.clientX));e.preventDefault();});
+  handle.addEventListener('pointermove',function(e){if(dragging)setCfromX(clientToVBx(e.clientX));});
+  handle.addEventListener('pointerup',function(){dragging=false;});
+  handle.addEventListener('pointercancel',function(){dragging=false;});
+  handle.addEventListener('keydown',function(e){
+    var T=state.a+state.b, step=T*0.02;
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){state.a=Math.max(0.3,state.a-step);state.b=T-state.a;render();e.preventDefault();}
+    else if(e.key==='ArrowRight'||e.key==='ArrowUp'){state.a=Math.min(T-0.3,state.a+step);state.b=T-state.a;render();e.preventDefault();}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
