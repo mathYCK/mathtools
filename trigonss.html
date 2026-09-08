@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html{color-scheme:light dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;font-size:14px;line-height:1.5;background:#eef1f6}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>平移與伸縮的順序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700;900&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --paper:#eef1f6; --surface:#ffffff; --surface-2:#f7f9fc;
+  --ink:#1b2333; --muted:#5c6675; --faint:#8a94a3;
+  --grid:#dde4ee; --grid-strong:#c3ccd9; --axis:#3a4454;
+  --base:#98a2b3;
+  --A:#0d7c86; --A-soft:#c9e9ec; --A-ink:#075258;
+  --B:#cf4b5f; --B-soft:#f6d6db; --B-ink:#8f2635;
+  --gold:#c98a06; --gold-soft:#f3e2b6;
+  --line:#e2e7ef; --shadow:0 1px 2px rgba(20,30,50,.06),0 8px 24px -12px rgba(20,30,50,.18);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0e131c; --surface:#161d29; --surface-2:#1b2330;
+    --ink:#e8ecf3; --muted:#9aa5b5; --faint:#6b7686;
+    --grid:#25303f; --grid-strong:#33404f; --axis:#7f8da0;
+    --base:#69748a;
+    --A:#3bb7c2; --A-soft:#123a3f; --A-ink:#7fdfe8;
+    --B:#f0768a; --B-soft:#3d1f26; --B-ink:#f6a9b5;
+    --gold:#e6b23c; --gold-soft:#3a300f;
+    --line:#28313f; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0e131c; --surface:#161d29; --surface-2:#1b2330;
+  --ink:#e8ecf3; --muted:#9aa5b5; --faint:#6b7686;
+  --grid:#25303f; --grid-strong:#33404f; --axis:#7f8da0;
+  --base:#69748a;
+  --A:#3bb7c2; --A-soft:#123a3f; --A-ink:#7fdfe8;
+  --B:#f0768a; --B-soft:#3d1f26; --B-ink:#f6a9b5;
+  --gold:#e6b23c; --gold-soft:#3a300f;
+  --line:#28313f; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font-family:"Noto Sans TC",system-ui,"PingFang TC","Microsoft JhengHei",sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:26px 20px 60px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+header.top{margin-bottom:22px}
+.eyebrow{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--A);font-weight:700}
+h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(26px,4.4vw,40px);
+  line-height:1.15;margin:.28em 0 .18em;text-wrap:balance;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:clamp(14px,1.6vw,16px);max-width:60ch}
+
+.panel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+.controls{display:flex;flex-wrap:wrap;gap:16px 22px;align-items:flex-end;
+  padding:16px 18px;margin:20px 0 18px}
+.ctl{display:flex;flex-direction:column;gap:7px}
+.ctl > .lab{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);
+  font-family:inherit;font-size:14px;font-weight:500;padding:7px 13px;border-radius:8px;cursor:pointer;
+  transition:background .15s,color .15s;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:700;
+  box-shadow:0 1px 2px rgba(20,30,50,.12);border:1px solid var(--line)}
+.seg.modeseg button[aria-pressed="true"]{color:var(--ink)}
+
+.player{display:flex;align-items:center;gap:8px;margin-left:auto}
+.pbtn{appearance:none;font-family:inherit;cursor:pointer;border:1px solid var(--line);
+  background:var(--surface-2);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s}
+.pbtn:hover{background:var(--surface);border-color:var(--grid-strong)}
+.pbtn.primary{background:var(--A);border-color:var(--A);color:#fff;font-weight:700}
+.pbtn.primary:hover{filter:brightness(1.06)}
+.pbtn:disabled{opacity:.4;cursor:default}
+.stepdot{font-size:13px;color:var(--muted);font-weight:600;min-width:78px;text-align:center}
+
+.stage{padding:12px 16px 6px;margin-bottom:18px}
+.stage .lab{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:2px}
+.stage .txt{font-size:15.5px}
+.stage b.ka{color:var(--A)} .stage b.kb{color:var(--B)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.track{padding:0;overflow:hidden}
+.track .thead{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.badge{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;flex:none}
+.track.a .badge{background:var(--A)} .track.b .badge{background:var(--B)}
+.track .tname{font-family:"Noto Serif TC",serif;font-weight:700;font-size:17px}
+.track .torder{font-size:12.5px;color:var(--muted);margin-top:1px}
+.expr{margin:0 16px;padding:9px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);
+  font-size:15px;display:flex;align-items:center;gap:8px;min-height:44px;flex-wrap:wrap}
+.track.a .expr{border-left:3px solid var(--A)} .track.b .expr{border-left:3px solid var(--B)}
+.expr .eqlab{color:var(--faint);font-weight:700}
+cvs,canvas{display:block;width:100%;height:auto}
+.canvas-wrap{padding:8px 8px 4px}
+.readout{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 18px 16px;flex-wrap:wrap}
+.readout .peaklab{font-size:13px;color:var(--muted);font-weight:600}
+.readout .peakval{font-size:22px;font-weight:700}
+.track.a .peakval{color:var(--A)} .track.b .peakval{color:var(--B)}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+.track.a .chip{background:var(--A-soft);color:var(--A-ink)}
+.track.b .chip{background:var(--B-soft);color:var(--B-ink)}
+
+.verdict{margin:20px 0 8px;padding:16px 20px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);
+  display:flex;gap:14px;align-items:flex-start}
+.verdict .vk{width:6px;align-self:stretch;border-radius:6px;background:var(--gold);flex:none}
+.verdict h3{margin:0 0 3px;font-family:"Noto Serif TC",serif;font-size:18px;font-weight:700}
+.verdict p{margin:0;color:var(--muted);font-size:15px}
+.verdict .big{color:var(--ink);font-weight:700}
+
+details.notes{margin-top:22px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+details.notes summary{cursor:pointer;list-style:none;padding:15px 20px;font-weight:700;
+  font-family:"Noto Serif TC",serif;font-size:16px;display:flex;align-items:center;gap:10px}
+details.notes summary::-webkit-details-marker{display:none}
+details.notes summary .tri{transition:transform .2s;color:var(--muted)}
+details.notes[open] summary .tri{transform:rotate(90deg)}
+.notes-body{padding:2px 22px 22px;border-top:1px solid var(--line)}
+.notes-body h4{font-family:"Noto Serif TC",serif;font-size:15px;margin:18px 0 6px;color:var(--A)}
+.notes-body p{margin:0 0 10px;font-size:14.5px;color:var(--ink)}
+.notes-body .muted{color:var(--muted)}
+.rule{font-family:"JetBrains Mono",monospace;background:var(--surface-2);border:1px solid var(--line);
+  padding:2px 7px;border-radius:6px;font-size:13.5px}
+.footnote{margin-top:16px;color:var(--faint);font-size:12.5px;text-align:center}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+.scrubcard{display:flex;flex-direction:column;gap:9px;padding:14px 18px;margin:0 0 16px}
+.scrublab{font-size:13.5px;font-weight:600;color:var(--ink)}
+.scrublab b{color:var(--gold)}
+#scrub{width:100%;-webkit-appearance:none;appearance:none;height:7px;border-radius:999px;
+  background:linear-gradient(90deg,var(--A) 0%,var(--gold) 50%,var(--B) 100%);cursor:grab}
+#scrub:active{cursor:grabbing}
+#scrub::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+  background:var(--surface);border:3px solid var(--ink);box-shadow:var(--shadow);cursor:grab;margin-top:0}
+#scrub::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--surface);
+  border:3px solid var(--ink);cursor:grab}
+.scrubmarks{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint);font-weight:600}
+.movechip{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;margin-left:auto;flex:none}
+.track.a .movechip{background:var(--A-soft);color:var(--A-ink)}
+.track.b .movechip{background:var(--B-soft);color:var(--B-ink)}
+
+.howto{list-style:none;counter-reset:h;display:flex;flex-wrap:wrap;gap:8px 24px;margin:16px 0 0;padding:14px 20px}
+.howto li{position:relative;padding-left:30px;font-size:14.5px;color:var(--ink);flex:1 1 230px}
+.howto li b{font-weight:700}
+.howto li::before{counter-increment:h;content:counter(h);position:absolute;left:0;top:1px;
+  width:21px;height:21px;border-radius:50%;background:var(--A);color:#fff;font-size:12.5px;font-weight:700;
+  display:grid;place-items:center;font-family:"JetBrains Mono",monospace}
+.think{margin:18px 0;padding:13px 18px;font-size:14.5px;color:var(--ink);border-radius:12px;
+  border:1px solid var(--line);border-left:4px solid var(--gold);
+  background:linear-gradient(90deg,var(--gold-soft),transparent 85%)}
+.takeaway,.quiz{margin-top:20px;padding:18px 22px}
+.takeaway h3,.quiz h3{font-family:"Noto Serif TC",serif;font-size:18px;margin:0 0 12px;font-weight:700}
+.takeaway ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px}
+.takeaway li{font-size:15px;line-height:1.65}
+.quiz h3 .qhint{font-family:"Noto Sans TC",sans-serif;font-size:12.5px;font-weight:500;color:var(--faint);margin-left:8px}
+.qitem{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;background:var(--surface-2)}
+.qitem summary{cursor:pointer;list-style:none;padding:12px 15px;font-size:14.5px;font-weight:600;color:var(--ink)}
+.qitem summary::-webkit-details-marker{display:none}
+.qitem summary::before{content:"▸ ";color:var(--A)}
+.qitem[open] summary::before{content:"▾ ";color:var(--A)}
+.qitem[open] summary{color:var(--A)}
+.qans{padding:2px 15px 14px;font-size:14px;color:var(--ink);line-height:1.65}
+.qans b{color:var(--gold)}
+
+.hintbar{margin:16px 0;padding:12px 18px;font-size:14px;color:var(--ink);border-radius:12px;
+  border:1px solid var(--line);border-left:4px solid var(--A);background:linear-gradient(90deg,var(--A-soft),transparent 82%)}
+.trackscrub{display:flex;align-items:center;gap:10px;padding:8px 16px 2px}
+.tslider{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;cursor:grab;background:var(--grid-strong)}
+.track.a .tslider{background:linear-gradient(90deg,var(--A-soft),var(--A))}
+.track.b .tslider{background:linear-gradient(90deg,var(--B-soft),var(--B))}
+.tslider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:var(--surface);border:3px solid var(--ink);box-shadow:var(--shadow);cursor:grab}
+.tslider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface);border:3px solid var(--ink);cursor:grab}
+.sst{font-size:12px;font-weight:700;min-width:76px;text-align:right}
+.track.a .sst{color:var(--A)} .track.b .sst{color:var(--B)}
+
+.baseline{margin-top:20px;padding:18px 22px}
+.baseline h3{font-family:"Noto Serif TC",serif;font-size:18px;margin:0 0 8px;font-weight:700}
+.bdesc{font-size:14.5px;margin:0 0 14px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.bgrid{grid-template-columns:1fr}}
+.bpanel{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2)}
+.bpanel.a{border-top:3px solid var(--A)} .bpanel.b{border-top:3px solid var(--B)}
+.bhd{padding:11px 14px 4px;font-size:13.5px}
+.bhd .ok{color:var(--A);font-weight:800} .bhd .no{color:var(--B);font-weight:800}
+.bpanel .canvas-wrap{padding:4px 8px 0}
+.bnote{padding:6px 14px 12px;font-size:13px;color:var(--muted)}
+.bnote b{color:var(--ink)}
+.brow{display:flex;align-items:center;gap:12px;margin:16px 0 6px;padding:10px 14px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.brlab{font-size:13px;font-weight:700;color:var(--faint);white-space:nowrap}
+#bscrub{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;cursor:grab;
+  background:linear-gradient(90deg,var(--A),var(--B))}
+#bscrub::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--surface);border:3px solid var(--ink);box-shadow:var(--shadow);cursor:grab}
+#bscrub::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--surface);border:3px solid var(--ink)}
+#bpct{font-size:13px;font-weight:700;color:var(--gold);min-width:92px;text-align:right}
+.bconc{font-size:14.5px;margin:12px 0 0;padding:12px 15px;border-radius:10px;
+  border-left:4px solid var(--gold);background:var(--gold-soft)}
+
+:focus-visible{outline:2.5px solid var(--A);outline-offset:2px;border-radius:6px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">函數圖形變換 · 自學互動</div>
+    <h1>平移與伸縮，先做哪一個？</h1>
+    <p class="sub">同樣兩個動作，「先伸縮」和「先平移」會把圖形帶到<b>不同的地方</b>。自己動手拖拖看，盯著同一個點，你就會懂為什麼順序不能隨便換。</p>
+  </header>
+
+  <ol class="howto panel-card">
+    <li><b>選一個例子</b>（先玩拋物線，再看講義第 4、5 題）</li>
+    <li><b>慢慢拖曳</b>下面的拉桿，看左右兩張圖怎麼變</li>
+    <li><b>盯住金色的點</b>，比較兩邊最後停在哪、式子差在哪</li>
+  </ol>
+
+  <div class="controls panel-card">
+    <div class="ctl">
+      <span class="lab">選例子</span>
+      <div class="seg" id="exseg" role="group" aria-label="選例子">
+        <button data-ex="clear" aria-pressed="true">拋物線 y=x²</button>
+        <button data-ex="sin4" aria-pressed="false">講義第4題</button>
+        <button data-ex="sin5" aria-pressed="false">講義第5題</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="lab">比較方式</span>
+      <div class="seg modeseg" id="modeseg" role="group" aria-label="比較方式">
+        <button data-mode="same-cmd" aria-pressed="true">同指令 → 不同結果</button>
+        <button data-mode="same-res" aria-pressed="false">同結果 → 不同平移量</button>
+      </div>
+    </div>
+    <div class="player" role="group" aria-label="播放控制">
+      <button class="pbtn" id="reset" title="重設">⟲ 重設</button>
+      <button class="pbtn" id="prev" title="上一步">‹ 上一步</button>
+      <span class="stepdot mono" id="stepdot">步驟 0 / 2</span>
+      <button class="pbtn" id="next" title="下一步">下一步 ›</button>
+      <button class="pbtn primary" id="play" title="播放">► 播放</button>
+    </div>
+  </div>
+
+  <div class="hintbar panel-card">🖐 <b>每張圖下方各有一個拉桿</b>，可以分開拖曳、比較兩邊的伸縮發生在哪一步；也可以按上面的「<b>播放</b>」讓兩張一起走。盯住金色的點。</div>
+
+  <div class="think panel-card">💭 <b>先猜一猜：</b>兩張圖的金色點，最後會停在<b>同一個位置</b>嗎？式子會一樣嗎？心裡先有答案，再拖曳驗證。</div>
+
+  <div class="grid2">
+    <div class="track a panel-card">
+      <div class="thead"><span class="badge">A</span>
+        <div><div class="tname">先伸縮，再平移</div><div class="torder" id="orderA">① 水平壓縮 → ② 向右平移</div></div>
+        <span class="movechip" id="moveA" hidden></span>
+      </div>
+      <div class="expr"><span class="eqlab mono">y =</span><span class="mono" id="exprA">x²</span></div>
+      <div class="canvas-wrap"><canvas id="cvA" aria-label="先伸縮再平移的圖形"></canvas></div>
+      <div class="trackscrub a"><input type="range" id="scrubA" class="tslider" min="0" max="200" value="0" aria-label="A 圖進度拉桿">
+        <span class="sst" id="statusA">起點</span></div>
+      <div class="readout"><span class="peaklab">🔸 追蹤點現在的 x 座標</span>
+        <span><span class="peakval mono" id="peakA">0</span> <span class="chip" id="chipA">起點</span></span></div>
+    </div>
+    <div class="track b panel-card">
+      <div class="thead"><span class="badge">B</span>
+        <div><div class="tname">先平移，再伸縮</div><div class="torder" id="orderB">① 向右平移 → ② 水平壓縮</div></div>
+        <span class="movechip" id="moveB" hidden></span>
+      </div>
+      <div class="expr"><span class="eqlab mono">y =</span><span class="mono" id="exprB">x²</span></div>
+      <div class="canvas-wrap"><canvas id="cvB" aria-label="先平移再伸縮的圖形"></canvas></div>
+      <div class="trackscrub b"><input type="range" id="scrubB" class="tslider" min="0" max="200" value="0" aria-label="B 圖進度拉桿">
+        <span class="sst" id="statusB">起點</span></div>
+      <div class="readout"><span class="peaklab">🔸 追蹤點現在的 x 座標</span>
+        <span><span class="peakval mono" id="peakB">0</span> <span class="chip" id="chipB">起點</span></span></div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="vk"></div>
+    <div><h3 id="vtitle">關鍵在哪裡？</h3><p id="vtext">走完兩步後，回頭比較兩個追蹤點停在哪。</p></div>
+  </div>
+
+  <section class="baseline panel-card">
+    <h3>關鍵：伸縮是「以誰為基準」？</h3>
+    <p class="bdesc">「先平移再伸縮」時，很多人以為圖形只是<b>原地變窄</b>。但函數的水平伸縮永遠是<b>以 y 軸（基準線）為準</b> —— 把每個點的 x 座標乘上倍率。基準不同，圖形會長不一樣。下面把同一條「頂點在 x = 6」的拋物線壓縮成 ½，比較兩種基準：</p>
+    <div class="bgrid">
+      <div class="bpanel a">
+        <div class="bhd"><span class="ok">✓ 以 y 軸為基準</span>（函數真正的做法）</div>
+        <div class="canvas-wrap"><canvas id="cvL" aria-label="以 y 軸為基準壓縮"></canvas></div>
+        <div class="bnote">頂點從 x=6 被 <b>拉回 x=3</b></div>
+      </div>
+      <div class="bpanel b">
+        <div class="bhd"><span class="no">✗ 以圖形自己為基準</span>（常見誤解）</div>
+        <div class="canvas-wrap"><canvas id="cvR" aria-label="以圖形自己為基準壓縮"></canvas></div>
+        <div class="bnote">只是原地變窄，頂點 <b>還在 x=6</b></div>
+      </div>
+    </div>
+    <div class="brow">
+      <span class="brlab">壓縮程度</span>
+      <input type="range" id="bscrub" min="0" max="100" value="0" aria-label="壓縮程度拉桿">
+      <span class="mono" id="bpct">原圖</span>
+    </div>
+    <p class="bconc">👉 兩種基準得到<b>不同的圖</b>。函數的水平伸縮用的是左邊（以 y 軸為基準），這就是為什麼「先平移再伸縮」時，已經移到 x=6 的點會被<b>拉回 x=3</b>。</p>
+  </section>
+
+  <section class="takeaway panel-card">
+    <h3>看懂了嗎？三個重點</h3>
+    <ol>
+      <li><b>伸縮是相對「基準線」(y 軸) 做的</b>：把每個點到 y 軸的<b>橫向距離</b>按倍率縮放。壓縮成 ½，就是每個點的 x 座標變成一半。</li>
+      <li><b>先平移的位移，之後會被伸縮縮放；先伸縮就不會。</b>所以「先平移再伸縮」和「先伸縮再平移」不一樣，順序不能隨便換。</li>
+      <li><b>兩種問法：</b>同樣的指令、不同順序 → 可能做出<b>不同的圖</b>（第 4 題）；想做出<b>同一張圖</b> → 兩種順序要用<b>不同的平移量</b>（第 5 題）。</li>
+    </ol>
+  </section>
+
+  <section class="quiz panel-card">
+    <h3>自我檢查 <span class="qhint">先自己想，再點開答案</span></h3>
+    <details class="qitem">
+      <summary>Q1　把 <span class="rule">y = sin x</span> 先<b>壓縮成 ½ 倍</b>、再向左平移，要得到 <span class="rule">y = sin(2x + π/3)</span>，平移量是多少？</summary>
+      <div class="qans"><b>左移 π/6。</b>壓縮後式子變 <span class="rule">sin(2x)</span>，要湊成 <span class="rule">sin(2(x + π/6))</span>，所以往左移 π/6。平移量「讀括號裡」。</div>
+    </details>
+    <details class="qitem">
+      <summary>Q2　同一題，改成<b>先向左平移、再壓縮成 ½ 倍</b>，平移量又是多少？</summary>
+      <div class="qans"><b>左移 π/3。</b>因為平移做在前面，之後整條圖（含這段位移）被壓縮成一半，所以要先移兩倍的量（π/3）才夠。</div>
+    </details>
+    <details class="qitem">
+      <summary>Q3　為什麼同一張圖，兩種順序的平移量會差一倍？</summary>
+      <div class="qans">因為<b>水平伸縮會連平移量一起縮放</b>。先平移的那段距離被壓縮成 ½，所以一開始要移兩倍；先伸縮的話，平移發生在壓縮之後，就照原本的數字移即可。</div>
+    </details>
+  </section>
+
+  <div class="footnote">用手機也能拖 —— 慢慢玩、多試幾個例子，順序的道理自己就會浮出來。深色／淺色會跟著系統。</div>
+</div>
+
+<script>
+"use strict";
+(function(){
+  const TAU=Math.PI*2;
+  function bumpFn(x){ return 2*Math.exp(-x*x) + 0.72*Math.exp(-(((x-1.5)/0.5)*((x-1.5)/0.5))); }
+  const SINTICKS=[{v:-Math.PI,t:"−π"},{v:0,t:"0"},{v:Math.PI,t:"π"},{v:Math.PI*2,t:"2π"}];
+  const EXAMPLES = {
+    clear:{
+      f:x=>0.38*x*x, x0:0, r:0.5, d:6, dir:1, piMode:false, defMode:"same-cmd", note:"",
+      xmin:-3.4, xmax:9.6, ymin:-0.9, ymax:7,
+      xticks:[{v:-3,t:"-3"},{v:0,t:"0"},{v:3,t:"3"},{v:6,t:"6"},{v:9,t:"9"}],
+      yticks:[0,2,4,6],
+      op1:"水平壓縮成 ½ 倍", scaleWord:"水平壓縮成 ½ 倍",
+      orderA:"① 水平壓縮成 ½ → ② 向右平移", orderB:"① 向右平移 → ② 水平壓縮成 ½"
+    },
+    sin4:{  // 課本第4題: 水平伸縮2倍 & 右移π/3 —— 同指令、不同結果
+      f:Math.sin, x0:Math.PI/2, r:2, d:Math.PI/3, dir:1, piMode:true, defMode:"same-cmd", note:"",
+      xmin:-Math.PI*1.15, xmax:Math.PI*2.15, ymin:-1.5, ymax:1.5, xticks:SINTICKS, yticks:[-1,0,1],
+      op1:"水平伸縮成 2 倍", scaleWord:"水平伸縮成 2 倍",
+      orderA:"① 水平伸縮成 2 倍 → ② 向右平移 π/3", orderB:"① 向右平移 π/3 → ② 水平伸縮成 2 倍"
+    },
+    sin5:{  // 課本第5題: sinx → 3sin(2x+π/3)+1 的水平部分 —— 同結果、不同平移量
+      f:Math.sin, x0:Math.PI/2, r:0.5, d:Math.PI/6, dir:-1, piMode:true, defMode:"same-res",
+      note:"只看水平部分；3 倍高、上移 1 是鉛直方向，不影響順序",
+      xmin:-Math.PI*1.15, xmax:Math.PI*2.15, ymin:-1.5, ymax:1.5, xticks:SINTICKS, yticks:[-1,0,1],
+      op1:"水平壓縮成 ½ 倍", scaleWord:"水平壓縮成 ½ 倍",
+      orderA:"① 水平壓縮成 ½ → ② 向左平移", orderB:"① 向左平移 → ② 水平壓縮成 ½"
+    }
+  };
+
+  let exKey="clear", mode="same-cmd", progA=0, progB=0, anim=null, playing=false;
+
+  // stage params (a,b): displayed y = f(a*x + b). prog in [0,2] scrubs stage0->1->2.
+  function stagesFor(){
+    const E=EXAMPLES[exKey], r=E.r, invr=1/r, s=E.dir;   // s: +1 右移 / -1 左移
+    const dA=E.d, dB=(mode==="same-res")? E.d/r : E.d;   // 同結果: B 的平移量 = d/r
+    const A=[ {a:1,b:0}, {a:invr,b:0}, {a:invr, b:-invr*s*dA} ];   // 先伸縮再平移
+    const B=[ {a:1,b:0}, {a:1,b:-s*dB}, {a:invr, b:-s*dB} ];       // 先平移再伸縮
+    return {A,B,dA,dB,r,invr,E};
+  }
+  function moveLabel(mag){ const E=EXAMPLES[exKey]; return (E.dir>0?"向右平移 ":"向左平移 ")+fmtD(mag); }
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  function interp(stages,p){
+    if(p<=0) return {...stages[0]};
+    if(p>=2) return {...stages[2]};
+    const seg=p<=1?0:1, t=p-seg, s0=stages[seg], s1=stages[seg+1];
+    return {a:lerp(s0.a,s1.a,t), b:lerp(s0.b,s1.b,t)};
+  }
+  function peakX(st,x0){ return (x0 - st.b)/st.a; }
+
+  // ---- formatting ----
+  function fmtPlain(v){ const r=Math.round(v); return Math.abs(v-r)<1e-9? (""+r): v.toFixed(1); }
+  function fmtPi(v){
+    if(Math.abs(v)<1e-9) return "0";
+    const q=v/Math.PI, sign=q<0?"−":""; let a=Math.abs(q);
+    for(const den of [1,2,3,4,6,8,12]){ const num=a*den, rn=Math.round(num);
+      if(Math.abs(num-rn)<1e-6){
+        if(den===1) return sign+(rn===1?"π":rn+"π");
+        return sign+(rn===1?"":rn)+"π/"+den;
+      }
+    }
+    return v.toFixed(2);
+  }
+  function fmtX(v, atRest){
+    const E=EXAMPLES[exKey];
+    if(E.piMode) return atRest? fmtPi(v) : v.toFixed(2);
+    return atRest? fmtPlain(v) : v.toFixed(1);
+  }
+  function fmtD(v){ return EXAMPLES[exKey].piMode? fmtPi(v) : fmtPlain(v); }
+  function trimNum(a){ return (Math.round(a*100)/100).toString(); }
+  function buildInside(st){
+    const E=EXAMPLES[exKey], a=st.a, b=st.b;
+    let ap = Math.abs(a-1)<1e-9? "x" : (Math.abs(a-Math.round(a))<1e-9? Math.round(a)+"x" : trimNum(a)+"x");
+    if(Math.abs(a-0.5)<1e-9) ap="x/2";
+    let bp="";
+    if(Math.abs(b)>1e-9){ const bb=E.piMode? fmtPi(Math.abs(b)) : fmtPlain(Math.abs(b));
+      bp=(b<0? " − ":" + ")+bb; }
+    return ap+bp;
+  }
+  function exprStr(st){
+    const E=EXAMPLES[exKey], inside=buildInside(st);
+    if(E.piMode) return "sin("+inside+")";
+    return inside==="x" ? "x²" : "("+inside+")²";   // 拋物線 y=x²
+  }
+
+  // ---- canvas ----
+  const cvA=document.getElementById("cvA"), cvB=document.getElementById("cvB");
+  const $=id=>document.getElementById(id);
+  function setupCanvas(cv){
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const cssW=cv.clientWidth||520, cssH=Math.round(cssW*0.62);
+    cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+"px";
+    const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx,W:cssW,H:cssH};
+  }
+  const css=v=>getComputedStyle(document.body).getPropertyValue(v).trim();
+
+  function draw(cv, st, which, atRest){
+    const E=EXAMPLES[exKey];
+    const {ctx,W,H}=setupCanvas(cv);
+    const padL=10,padR=10,padT=14,padB=24;
+    const x2p=x=>padL+(x-E.xmin)/(E.xmax-E.xmin)*(W-padL-padR);
+    const y2p=y=>padT+(E.ymax-y)/(E.ymax-E.ymin)*(H-padT-padB);
+    ctx.clearRect(0,0,W,H);
+    const cGrid=css("--grid"),cAxis=css("--axis"),cBase=css("--base"),
+          cMain=css(which==="a"?"--A":"--B"),cGold=css("--gold"),cMuted=css("--muted");
+    // grid
+    ctx.lineWidth=1; ctx.strokeStyle=cGrid; ctx.beginPath();
+    for(const t of E.xticks){ const px=x2p(t.v); ctx.moveTo(px,padT); ctx.lineTo(px,H-padB); }
+    for(const yv of E.yticks){ const py=y2p(yv); ctx.moveTo(padL,py); ctx.lineTo(W-padR,py); }
+    ctx.stroke();
+    const py0=y2p(0), px0=x2p(0);
+    // axes
+    ctx.strokeStyle=cAxis; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.moveTo(padL,py0); ctx.lineTo(W-padR,py0);
+    ctx.moveTo(px0,padT); ctx.lineTo(px0,H-padB); ctx.stroke();
+    // baseline label (y-axis = 伸縮基準線)
+    ctx.fillStyle=cMuted; ctx.font='11px "Noto Sans TC",sans-serif'; ctx.textAlign="left";
+    ctx.fillText("基準線", px0+5, padT+10);
+    // x tick labels
+    ctx.font='12px "JetBrains Mono",monospace'; ctx.textAlign="center";
+    for(const t of E.xticks){ if(Math.abs(t.v)<1e-9) continue; ctx.fillText(t.t, x2p(t.v), H-padB+15); }
+    ctx.textAlign="left"; ctx.fillText("O", px0+4, py0+14);
+
+    function plot(stt,color,width,dash,alpha){
+      ctx.save(); ctx.globalAlpha=alpha; ctx.strokeStyle=color; ctx.lineWidth=width;
+      ctx.setLineDash(dash||[]); ctx.lineJoin="round"; ctx.beginPath();
+      let started=false;
+      for(let px=padL; px<=W-padR; px+=1){
+        const xw=E.xmin+(px-padL)/(W-padL-padR)*(E.xmax-E.xmin);
+        const py=y2p(E.f(stt.a*xw+stt.b));
+        if(!started){ctx.moveTo(px,py);started=true;} else ctx.lineTo(px,py);
+      }
+      ctx.stroke(); ctx.restore();
+    }
+    plot({a:1,b:0}, cBase, 2, [5,5], 0.5);   // 原圖
+    plot(st, cMain, 3.4, [], 1);             // 現圖
+
+    // landmark
+    const pxk=peakX(st,E.x0), pyk=E.f(E.x0), sx=x2p(pxk), sy=y2p(pyk);
+    // horizontal tie: dot's distance from 基準線 (shrinks while compressing)
+    if(Math.abs(pxk)>0.1){
+      ctx.save(); ctx.strokeStyle=cMain; ctx.globalAlpha=.55; ctx.lineWidth=2.5; ctx.setLineDash([2,3]);
+      ctx.beginPath(); ctx.moveTo(px0,sy); ctx.lineTo(sx,sy); ctx.stroke(); ctx.restore();
+    }
+    // vertical guide down to axis
+    ctx.save(); ctx.strokeStyle=cGold; ctx.globalAlpha=.8; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx,py0); ctx.stroke(); ctx.restore();
+    // dot
+    ctx.beginPath(); ctx.fillStyle=cGold; ctx.arc(sx,sy,6,0,TAU); ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle=css("--surface"); ctx.stroke();
+    // x value label
+    ctx.fillStyle=cGold; ctx.font='700 13px "JetBrains Mono",monospace';
+    let lx=Math.max(padL+16,Math.min(W-padR-16,sx)), lalign="center";
+    if(Math.abs(pxk)<0.5){ lx=sx+8; lalign="left"; }   // 靠近基準線時往右挪，避開 y 軸
+    ctx.textAlign=lalign;
+    ctx.fillText("x = "+fmtX(pxk,atRest), lx, py0+(pyk>=0?30:-12));
+  }
+
+  // ---- render (two independent progs) ----
+  const nearInt=p=>Math.abs(p-Math.round(p))<1e-6;
+  function chipLabel(which,si,atRest){
+    if(!atRest) return "進行中…";
+    if(si===0) return "起點";
+    if(which==="a") return si===1? "已伸縮" : "完成";
+    return si===1? "已平移" : "完成";
+  }
+  function statusText(which,p){
+    const at=nearInt(p), si=Math.round(p);
+    if(at){ if(si===0) return "起點"; if(si===2) return "✓ 完成"; return which==="a"?"已壓縮":"已平移"; }
+    if(which==="a") return p<1? "壓縮中…" : "平移中…";
+    return p<1? "平移中…" : "壓縮中(拉回基準)";
+  }
+  function drawTrack(which){
+    const S=stagesFor(), E=S.E, p=which==="a"?progA:progB;
+    const st=interp(which==="a"?S.A:S.B, p), at=nearInt(p), si=Math.round(p);
+    draw(which==="a"?cvA:cvB, st, which, at);
+    $(which==="a"?"peakA":"peakB").textContent=fmtX(peakX(st,E.x0),at);
+    $(which==="a"?"exprA":"exprB").textContent=exprStr(st);
+    $(which==="a"?"chipA":"chipB").textContent=chipLabel(which,si,at);
+    $(which==="a"?"statusA":"statusB").textContent=statusText(which,p);
+    const sc=$(which==="a"?"scrubA":"scrubB");
+    if(document.activeElement!==sc) sc.value=Math.round(p*100);
+  }
+  function render(){
+    const S=stagesFor();
+    drawTrack("a"); drawTrack("b");
+    $("moveA").hidden=false; $("moveB").hidden=false;
+    $("moveA").textContent="平移量 "+fmtD(S.dA);
+    $("moveB").textContent="平移量 "+fmtD(S.dB);
+    const siA=Math.round(progA), siB=Math.round(progB);
+    $("stepdot").textContent="A "+(nearInt(progA)?siA:"…")+" · B "+(nearInt(progB)?siB:"…")+" / 2";
+    $("prev").disabled=(progA<=1e-6 && progB<=1e-6);
+    $("next").disabled=(progA>=2-1e-6 && progB>=2-1e-6);
+    const bothDone = nearInt(progA)&&siA===2 && nearInt(progB)&&siB===2;
+    updateVerdict(bothDone,S);
+  }
+  function updateVerdict(bothDone,S){
+    const E=S.E, dA=S.dA, dB=S.dB;
+    const fa=fmtX(peakX(S.A[2],E.x0),true), fb=fmtX(peakX(S.B[2],E.x0),true);
+    let title,text;
+    const noteTxt = E.note? '（'+E.note+'）' : '';
+    if(mode==="same-cmd"){
+      if(!bothDone){ title="關鍵在哪裡？"; text="兩邊用<b>同樣</b>的「"+E.op1+"」和「"+moveLabel(dA)+"」，只是順序相反。把兩張圖都拖到底，看兩個追蹤點會不會停在同一點。"; }
+      else{ title="同樣兩個動作，順序不同 → 落點不同";
+        text='A（先伸縮）停在 <span class="big">x = '+fa+'</span>，B（先平移）停在 <span class="big">x = '+fb+'</span>。關鍵：<b>先平移</b>的那段位移，之後又被水平伸縮縮放了一次（相對基準線），所以跑到不同位置。'+noteTxt; }
+    } else {
+      const ratio=dB/dA, rtxt=Math.abs(ratio-2)<1e-6?"2 倍":(Math.abs(ratio-0.5)<1e-6?"一半":trimNum(ratio)+" 倍");
+      if(!bothDone){ title="這次要讓兩張圖停在同一個地方"; text="B 的平移量特意改成 <b>"+fmtD(dB)+"</b>（A 是 "+fmtD(dA)+"）。把兩張都拖到底，兩張圖會完全重合 —— 但用的平移量不一樣。"; }
+      else{ title="想要同一張圖 → 兩種順序的平移量不同";
+        text='兩邊都停在 <span class="big">x = '+fa+'</span>，圖形完全一樣、重疊在一起（這就是「同結果」）。但 A（先伸縮再平移）的平移量是 <span class="big">'+fmtD(dA)+'</span>，B（先平移再伸縮）卻是 <span class="big">'+fmtD(dB)+'</span>（差 '+rtxt+'）。因為<b>先平移</b>的位移之後會被伸縮縮放，所以要換一個平移量才能得到同一張圖。'+noteTxt; }
+    }
+    $("vtitle").textContent=title; $("vtext").innerHTML=text;
+  }
+
+  // ---- driving (two progs; buttons move both together) ----
+  function ease(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+  function stopAll(){ playing=false; if(anim){cancelAnimationFrame(anim.raf);anim=null;} $("play").textContent="► 播放"; }
+  function setProgs(a,b){ progA=Math.max(0,Math.min(2,a)); progB=Math.max(0,Math.min(2,b)); render(); }
+  function animateBoth(ta,tb){
+    stopAll();
+    const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const sa=progA, sb=progB, dist=Math.max(Math.abs(ta-sa),Math.abs(tb-sb));
+    const dur=reduce?0:Math.max(240,700*dist), t0=performance.now();
+    function fr(now){ const p=dur?Math.min((now-t0)/dur,1):1, e=ease(p);
+      progA=lerp(sa,ta,e); progB=lerp(sb,tb,e); render();
+      if(p<1) anim={raf:requestAnimationFrame(fr)}; else { anim=null; progA=ta; progB=tb; render(); } }
+    anim={raf:requestAnimationFrame(fr)};
+  }
+  function play(){
+    if(playing){ stopAll(); return; }
+    if(progA>=2-1e-6 && progB>=2-1e-6) setProgs(0,0);
+    playing=true; $("play").textContent="⏸ 暫停";
+    const sa=progA, sb=progB, dur=1300*Math.max(2-sa,2-sb), t0=performance.now();
+    function fr(now){ if(!playing) return; const p=dur?Math.min((now-t0)/dur,1):1;
+      progA=lerp(sa,2,p); progB=lerp(sb,2,p); render();
+      if(p<1) anim={raf:requestAnimationFrame(fr)}; else { playing=false; anim=null; $("play").textContent="► 播放"; } }
+    anim={raf:requestAnimationFrame(fr)};
+  }
+  function applyExampleMeta(){ const E=EXAMPLES[exKey]; $("orderA").textContent=E.orderA; $("orderB").textContent=E.orderB; }
+  function resetAll(){ stopAll(); setProgs(0,0); }
+
+  // ---- events ----
+  $("exseg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
+    [...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
+    exKey=b.dataset.ex; mode=EXAMPLES[exKey].defMode;
+    [...$("modeseg").children].forEach(x=>x.setAttribute("aria-pressed", x.dataset.mode===mode));
+    applyExampleMeta(); resetAll(); });
+  $("modeseg").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
+    [...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",x===b));
+    mode=b.dataset.mode; resetAll(); });
+  $("scrubA").addEventListener("input",e=>{ stopAll(); progA=+e.target.value/100; render(); });
+  $("scrubB").addEventListener("input",e=>{ stopAll(); progB=+e.target.value/100; render(); });
+  $("next").addEventListener("click",()=>{ const t=Math.min(2,Math.floor(Math.max(progA,progB)+1e-6)+1); animateBoth(t,t); });
+  $("prev").addEventListener("click",()=>{ const t=Math.max(0,Math.ceil(Math.min(progA,progB)-1e-6)-1); animateBoth(t,t); });
+  $("reset").addEventListener("click",resetAll);
+  $("play").addEventListener("click",play);
+
+  // ---- 伸縮基準 對照 demo ----
+  const cvL=$("cvL"), cvR=$("cvR");
+  function pf(x){ return 0.38*x*x; }              // y=x²
+  function drawBaseline(cv, kind, t){             // t:0→1 壓縮進度; s=1→2
+    const {ctx,W,H}=setupCanvas(cv);
+    const xmin=-2, xmax=10, ymin=-0.9, ymax=7, padL=10,padR=10,padT=14,padB=24;
+    const x2p=x=>padL+(x-xmin)/(xmax-xmin)*(W-padL-padR);
+    const y2p=y=>padT+(ymax-y)/(ymax-ymin)*(H-padT-padB);
+    ctx.clearRect(0,0,W,H);
+    const cGrid=css("--grid"),cAxis=css("--axis"),cBase=css("--base"),cGold=css("--gold"),cMuted=css("--muted");
+    const cMain=css(kind==="L"?"--A":"--B");
+    const py0=y2p(0), px0=x2p(0);
+    ctx.strokeStyle=cGrid; ctx.lineWidth=1; ctx.beginPath();
+    for(const xv of [3,6,9]){ const px=x2p(xv); ctx.moveTo(px,padT); ctx.lineTo(px,H-padB); }
+    for(const yv of [0,3,6]){ const py=y2p(yv); ctx.moveTo(padL,py); ctx.lineTo(W-padR,py); }
+    ctx.stroke();
+    ctx.strokeStyle=cAxis; ctx.lineWidth=1.5; ctx.beginPath();
+    ctx.moveTo(padL,py0); ctx.lineTo(W-padR,py0); ctx.moveTo(px0,padT); ctx.lineTo(px0,H-padB); ctx.stroke();
+    ctx.fillStyle=cMuted; ctx.font='12px "JetBrains Mono",monospace'; ctx.textAlign="center";
+    for(const xv of [3,6,9]) ctx.fillText(""+xv, x2p(xv), H-padB+15);
+    ctx.textAlign="left"; ctx.fillText("O", px0+4, py0+14);
+    const s=1+t, baseX=(kind==="L")?0:6;
+    // 基準線
+    ctx.save(); ctx.strokeStyle=cMain; ctx.globalAlpha=.6; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+    const bpx=x2p(baseX); ctx.beginPath(); ctx.moveTo(bpx,padT); ctx.lineTo(bpx,H-padB); ctx.stroke(); ctx.restore();
+    ctx.fillStyle=cMain; ctx.font='700 11px "Noto Sans TC",sans-serif'; ctx.textAlign="left";
+    ctx.fillText(kind==="L"?"基準線":"基準線(頂點)", bpx+4, padT+10);
+    function plot(fn,color,w,dash,alpha){
+      ctx.save(); ctx.globalAlpha=alpha; ctx.strokeStyle=color; ctx.lineWidth=w; ctx.setLineDash(dash||[]); ctx.lineJoin="round"; ctx.beginPath();
+      let started=false;
+      for(let px=padL;px<=W-padR;px+=1){ const xw=xmin+(px-padL)/(W-padL-padR)*(xmax-xmin); const py=y2p(fn(xw));
+        if(!started){ctx.moveTo(px,py);started=true;} else ctx.lineTo(px,py); }
+      ctx.stroke(); ctx.restore();
+    }
+    const orig=x=>pf(x-6);
+    const cur =x=>pf( s*(x-baseX) + (baseX-6) );
+    plot(orig, cBase, 2, [5,5], 0.5);
+    plot(cur, cMain, 3.4, [], 1);
+    const vx=(kind==="L")?6/s:6, sx=x2p(vx);
+    ctx.beginPath(); ctx.fillStyle=cGold; ctx.arc(sx,py0,6,0,TAU); ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle=css("--surface"); ctx.stroke();
+    ctx.fillStyle=cGold; ctx.font='700 13px "JetBrains Mono",monospace'; ctx.textAlign="center";
+    const vlab=(Math.abs(vx-Math.round(vx))<0.05)?(""+Math.round(vx)):vx.toFixed(1);
+    ctx.fillText("x = "+vlab, sx, py0+30);
+  }
+  let bt=0;
+  function renderBaseline(){ drawBaseline(cvL,"L",bt); drawBaseline(cvR,"R",bt);
+    const s=1+bt; $("bpct").textContent = bt<0.02? "原圖(未壓縮)" : ("寬度 "+Math.round(100/s)+"%"); }
+  $("bscrub").addEventListener("input",e=>{ bt=+e.target.value/100; renderBaseline(); });
+
+  let rz; window.addEventListener("resize",()=>{ clearTimeout(rz); rz=setTimeout(()=>{ render(); renderBaseline(); },120); });
+
+  applyExampleMeta();
+  window.addEventListener("load",()=>{ setProgs(0,0); renderBaseline(); });
+  setProgs(0,0); renderBaseline();
+})();
+</script>
+
+</body>
+</html>
