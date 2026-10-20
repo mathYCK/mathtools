@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>半平面互動圖</title>
+<style>
+:root{--ink:#242a35;--muted:#9a9384;--soft:#6b6656;--line:#ece7db;--red:#c62828;--blue:#2166ba;--green:#1f7a45;--paper:#fffdf8;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;padding:12px 16px}
+.m{font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.ineq{font-size:26px;text-align:center;padding:4px 0 10px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:720px){.grid{grid-template-columns:1fr}}
+canvas{width:100%;aspect-ratio:1;display:block;background:#fff;border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px;background:#fff}
+.card h3{margin:0 0 6px;font-size:14px;color:var(--soft);font-weight:600}
+.row{display:flex;align-items:center;gap:8px;margin:4px 0}
+.row label{width:16px}
+.row input[type=range]{flex:1;accent-color:var(--blue)}
+.row output{width:48px;text-align:right;font-variant-numeric:tabular-nums}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.sign button{min-width:44px;font-size:17px}
+.res{border-left:4px solid var(--green);padding:6px 12px;background:#f2f8f4;border-radius:0 8px 8px 0;margin-top:10px}
+.res.no{border-color:var(--red);background:#fbeaea}
+.res.edge{border-color:#b8860b;background:#fbf5e3}
+.hint{font-size:13px;color:var(--soft);margin-top:6px}
+.chk{display:flex;gap:6px;align-items:center;font-size:14px;margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="ineq m" id="ineq"></div>
+  <div class="grid">
+    <div>
+      <canvas id="cv" aria-label="座標平面上的半平面"></canvas>
+      <div class="hint">點擊或拖曳圖上任一處，移動測試點 P。藍色區域＝解區域；紅線＝邊界（虛線不含、實線含）。</div>
+      <div class="res" id="res"></div>
+      <div class="hint" id="tip"></div>
+    </div>
+    <div>
+      <div class="card"><h3>範例</h3><div class="btns" id="presets"></div></div>
+      <div class="card"><h3>係數　<span class="m">ax + by + c</span>　與不等號</h3>
+        <div class="row"><label class="m">a</label><input type="range" id="sa" min="-4" max="4" step="0.5"><output id="oa"></output></div>
+        <div class="row"><label class="m">b</label><input type="range" id="sb" min="-4" max="4" step="0.5"><output id="ob"></output></div>
+        <div class="row"><label class="m">c</label><input type="range" id="sc" min="-8" max="8" step="0.5"><output id="oc"></output></div>
+        <div class="btns sign" id="signs" style="margin-top:6px"></div>
+      </div>
+      <div class="card"><h3>動畫</h3>
+        <div class="btns">
+          <button data-anim="sweep">塗色展開</button>
+          <button data-anim="shift">平移直線</button>
+          <button data-anim="rotate">旋轉直線</button>
+          <button data-anim="scan">測試點繞圈</button>
+          <button id="stop">■ 停止</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="showN" checked>顯示法向量 (a, b)（指向 &gt; 0 那側）</label>
+        <label class="chk"><input type="checkbox" id="snap" checked>測試點對齊半格</label>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const R=6;
+const st={a:1,b:1,c:-2,sign:'>'};
+let P={x:0,y:0};
+const SYM={'>':'>','>=':'≥','<':'<','<=':'≤'};
+const presets=[
+  {t:'x + y − 2 > 0',a:1,b:1,c:-2,s:'>'},
+  {t:'2x − y + 4 ≥ 0',a:2,b:-1,c:4,s:'>='},
+  {t:'x ≤ 3',a:1,b:0,c:-3,s:'<='},
+  {t:'x − 2y < 0',a:1,b:-2,c:0,s:'<'},
+  {t:'3x + 2y − 6 ≤ 0',a:3,b:2,c:-6,s:'<='}
+];
+const cv=$('cv'),ctx=cv.getContext('2d');
+let W=500;
+const X=x=>(x+R)/(2*R)*W, Y=y=>(R-y)/(2*R)*W, iX=px=>px/W*2*R-R, iY=py=>R-py/W*2*R;
+const SQ=[[-R,-R],[R,-R],[R,R],[-R,R]];
+const f=(x,y)=>st.a*x+st.b*y+st.c;
+const holds=v=>st.sign==='>'?v>1e-9:st.sign==='>='?v>=-1e-9:st.sign==='<'?v<-1e-9:v<=1e-9;
+const strict=()=>st.sign.length===1;
+
+function fmtN(n){let r=Math.round(n*100)/100;if(Object.is(r,-0))r=0;return String(r).replace('-','−');}
+function fmtP(n){return n<-1e-9?'('+fmtN(n)+')':fmtN(n);}
+function expr(a,b,c){
+  let s='';
+  for(const [k,v] of [[a,'x'],[b,'y'],[c,'']]){
+    if(Math.abs(k)<1e-9)continue;
+    const m=Math.abs(k);
+    const body=(v&&Math.abs(m-1)<1e-9)?v:fmtN(m)+v;
+    s+= s ? (k<0?' − ':' + ')+body : (k<0?'−':'')+body;
+  }
+  return s||'0';
+}
+function clipPoly(poly,g){
+  const out=[];
+  for(let i=0;i<poly.length;i++){
+    const p=poly[i],q=poly[(i+1)%poly.length],gp=g(p),gq=g(q);
+    if(gp>=0)out.push(p);
+    if((gp>=0)!==(gq>=0)){const t=gp/(gp-gq);out.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])]);}
+  }
+  return out;
+}
+function segPts(){
+  const pts=[];
+  for(let i=0;i<4;i++){
+    const p=SQ[i],q=SQ[(i+1)%4],fp=f(...p),fq=f(...q);
+    if(Math.abs(fp)<1e-12)pts.push(p);
+    else if(fp*fq<0){const t=fp/(fp-fq);pts.push([p[0]+t*(q[0]-p[0]),p[1]+t*(q[1]-p[1])]);}
+  }
+  return pts;
+}
+
+/* ---------- UI ---------- */
+const sl={a:$('sa'),b:$('sb'),c:$('sc')},ou={a:$('oa'),b:$('ob'),c:$('oc')};
+presets.forEach(p=>{const b=document.createElement('button');b.className='m';b.textContent=p.t;
+  b.onclick=()=>{stopAnim();Object.assign(st,{a:p.a,b:p.b,c:p.c,sign:p.s});P={x:0,y:0};sync();startAnim('sweep');};
+  $('presets').appendChild(b);});
+Object.keys(SYM).forEach(k=>{const b=document.createElement('button');b.dataset.s=k;b.textContent=SYM[k];
+  b.onclick=()=>{stopAnim();st.sign=k;sync();startAnim('sweep');};$('signs').appendChild(b);});
+for(const k of ['a','b','c'])sl[k].addEventListener('input',()=>{stopAnim();st[k]=+sl[k].value;sync();draw();});
+document.querySelectorAll('[data-anim]').forEach(b=>b.onclick=()=>startAnim(b.dataset.anim));
+$('stop').onclick=()=>{stopAnim();draw();};
+$('showN').onchange=draw;
+
+function sync(){
+  for(const k of ['a','b','c']){sl[k].value=st[k];ou[k].textContent=fmtN(st[k]);}
+  document.querySelectorAll('#signs button').forEach(b=>b.classList.toggle('on',b.dataset.s===st.sign));
+  $('ineq').textContent=expr(st.a,st.b,st.c)+' '+SYM[st.sign]+' 0';
+}
+
+/* ---------- drawing ---------- */
+let sweep=1;
+function arrow(x1,y1,x2,y2,col){
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const an=Math.atan2(y2-y1,x2-x1),h=11;
+  ctx.beginPath();ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-h*Math.cos(an-0.4),y2-h*Math.sin(an-0.4));
+  ctx.lineTo(x2-h*Math.cos(an+0.4),y2-h*Math.sin(an+0.4));ctx.closePath();ctx.fill();
+}
+function draw(){
+  ctx.clearRect(0,0,W,W);
+  const degenerate=Math.abs(st.a)<1e-9&&Math.abs(st.b)<1e-9;
+  // region
+  const s=st.sign[0]==='>'?1:-1;
+  let poly=clipPoly(SQ,p=>s*f(...p));
+  if(sweep<1){const n=Math.hypot(st.a,st.b)||1,d=sweep*R*3;poly=clipPoly(poly,p=>d*n-s*f(...p));}
+  if(poly.length>=3){ctx.fillStyle='rgba(33,102,186,.22)';ctx.beginPath();poly.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.closePath();ctx.fill();}
+  // grid
+  ctx.lineWidth=1;ctx.setLineDash([]);
+  for(let i=-R;i<=R;i++){
+    ctx.strokeStyle=i===0?'#9a9384':'rgba(154,147,132,.22)';ctx.lineWidth=i===0?1.4:1;
+    ctx.beginPath();ctx.moveTo(X(i),0);ctx.lineTo(X(i),W);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,Y(i));ctx.lineTo(W,Y(i));ctx.stroke();
+  }
+  ctx.fillStyle='#9a9384';ctx.font='11px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='top';
+  for(let i=-R+1;i<R;i++){if(i&&i%2===0){ctx.fillText(fmtN(i),X(i),Y(0)+3);ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(fmtN(i),X(0)-4,Y(i));ctx.textAlign='center';ctx.textBaseline='top';}}
+  ctx.font='italic 14px Georgia,serif';ctx.fillText('x',W-10,Y(0)+3);ctx.textAlign='left';ctx.fillText('y',X(0)+5,4);ctx.fillText('O',X(0)+3,Y(0)+2);
+  // boundary
+  const pts=degenerate?[]:segPts();
+  if(pts.length>=2){
+    const p1=pts[0],p2=pts[pts.length-1];
+    ctx.strokeStyle='#c62828';ctx.lineWidth=2.6;ctx.setLineDash(strict()?[9,7]:[]);
+    ctx.beginPath();ctx.moveTo(X(p1[0]),Y(p1[1]));ctx.lineTo(X(p2[0]),Y(p2[1]));ctx.stroke();ctx.setLineDash([]);
+    if($('showN').checked){
+      const n=Math.hypot(st.a,st.b),mx=(p1[0]+p2[0])/2,my=(p1[1]+p2[1])/2,L=1.6;
+      const ex=mx+st.a/n*L,ey=my+st.b/n*L;
+      arrow(X(mx),Y(my),X(ex),Y(ey),'#1b4f8f');
+      ctx.fillStyle='#1b4f8f';ctx.font='13px "PingFang TC","Microsoft JhengHei",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('> 0 側',X(mx+st.a/n*(L+0.75)),Y(my+st.b/n*(L+0.75)));
+    }
+  }
+  // test point
+  const v=f(P.x,P.y),on=Math.abs(v)<1e-9,ok=holds(v);
+  const col=on?'#b8860b':ok?'#1f7a45':'#c62828';
+  ctx.beginPath();ctx.arc(X(P.x),Y(P.y),8,0,7);ctx.fillStyle=col;ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#fff';ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 13px Georgia,serif';ctx.textAlign='left';ctx.textBaseline='bottom';
+  const lx=X(P.x)+11>W-80?X(P.x)-90:X(P.x)+11;
+  ctx.fillText('P('+fmtN(P.x)+', '+fmtN(P.y)+')',lx,Y(P.y)-6);
+  report(v,on,ok,degenerate);
+}
+function report(v,on,ok,degenerate){
+  const r=$('res'),sub=`${fmtP(st.a)}·${fmtP(P.x)} + ${fmtP(st.b)}·${fmtP(P.y)} + ${fmtP(st.c)} = <b>${fmtN(v)}</b>`;
+  let msg=`代入 P(${fmtN(P.x)}, ${fmtN(P.y)})：${sub}<br>`;
+  if(degenerate){r.className='res edge';r.innerHTML='a、b 不能同時為 0，這樣就不是直線了！';$('tip').textContent='';return;}
+  if(on){r.className='res edge';msg+=strict()
+     ?'P 剛好在邊界上（虛線，不屬於解），無法判斷是哪一側 ⟹ <b>換一個不在線上的測試點</b>，例如 (1,0) 或 (0,1)。'
+     :'P 剛好在邊界上（實線，屬於解），但無法判斷是哪一側 ⟹ <b>換一個不在線上的測試點</b>。';}
+  else if(ok){r.className='res';msg+=`${fmtN(v)} ${SYM[st.sign]} 0 <b>成立 ✔</b> ⟹ 解區域是 <b>P 所在的這一側</b>。`;}
+  else{r.className='res no';msg+=`${fmtN(v)} ${SYM[st.sign]} 0 <b>不成立 ✘</b> ⟹ 解區域是 <b>P 的另一側</b>。`;}
+  r.innerHTML=msg;
+  const s=st.sign[0]==='>'?1:-1,E=expr(st.a,st.b,st.c)+' '+SYM[st.sign]+' 0';
+  if(Math.abs(st.b)>1e-9){const side=(st.b>0)===(s>0)?'上方':'下方';
+    $('tip').textContent=`小技巧：b = ${fmtN(st.b)} ${st.b>0?'＞':'＜'} 0，所以「${E}」是直線的${side}。`;}
+  else{const side=(st.a>0)===(s>0)?'右側':'左側';
+    $('tip').textContent=`小技巧：b = 0 是鉛直線；a = ${fmtN(st.a)} ${st.a>0?'＞':'＜'} 0，所以「${E}」是直線的${side}。`;}
+}
+
+/* ---------- animation ---------- */
+let anim=null,raf=0,t0=0,base=null;
+function startAnim(mode){
+  stopAnim();anim=mode;t0=performance.now();
+  const pts=segPts(),mid=pts.length>=2?[(pts[0][0]+pts[pts.length-1][0])/2,(pts[0][1]+pts[pts.length-1][1])/2]:[0,0];
+  base={...st,mid};
+  if(mode==='sweep')sweep=0;
+  document.querySelectorAll('[data-anim]').forEach(b=>b.classList.toggle('on',b.dataset.anim===mode));
+  raf=requestAnimationFrame(step);
+}
+function stopAnim(){cancelAnimationFrame(raf);anim=null;sweep=1;document.querySelectorAll('[data-anim]').forEach(b=>b.classList.remove('on'));}
+function step(now){
+  const t=(now-t0)/1000;
+  if(anim==='sweep'){sweep=Math.min(1,t/1.6);if(sweep>=1){stopAnim();draw();return;}}
+  else if(anim==='shift'){st.c=base.c+3*Math.sin(t*1.1);}
+  else if(anim==='rotate'){
+    const r=Math.hypot(base.a,base.b)||1,th=Math.atan2(base.b,base.a)+t*0.55;
+    st.a=r*Math.cos(th);st.b=r*Math.sin(th);st.c=-(st.a*base.mid[0]+st.b*base.mid[1]);}
+  else if(anim==='scan'){P={x:3.5*Math.cos(t*0.8),y:3.5*Math.sin(t*0.8)};}
+  sync();draw();raf=requestAnimationFrame(step);
+}
+
+/* ---------- test point dragging ---------- */
+let drag=false;
+function moveP(e){
+  const r=cv.getBoundingClientRect();let x=iX(e.clientX-r.left),y=iY(e.clientY-r.top);
+  if($('snap').checked){x=Math.round(x*2)/2;y=Math.round(y*2)/2;}
+  P={x:Math.max(-R,Math.min(R,x)),y:Math.max(-R,Math.min(R,y))};draw();
+}
+cv.addEventListener('pointerdown',e=>{if(anim==='scan')stopAnim();drag=true;cv.setPointerCapture(e.pointerId);moveP(e);});
+cv.addEventListener('pointermove',e=>{if(drag)moveP(e);});
+cv.addEventListener('pointerup',()=>drag=false);
+cv.addEventListener('pointercancel',()=>drag=false);
+
+function resize(){const s=cv.clientWidth||500,d=window.devicePixelRatio||1;cv.width=s*d;cv.height=s*d;ctx.setTransform(d,0,0,d,0,0);W=s;draw();}
+new ResizeObserver(resize).observe(cv);
+sync();resize();startAnim('sweep');
+</script>
+</body>
+</html>
